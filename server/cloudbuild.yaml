@@ -18,6 +18,10 @@ steps:
   # clients.json は Secret Manager からファイルマウントで供給する。
   # マウント先を /secrets/ 配下にしているのは、/ 直下にマウントすると
   # 親ディレクトリがボリューム置換されコンテナが起動しなくなるため。
+  #
+  # PRODUCTION_DOMAIN は意図的に設定しない。CORS 実装がサブドメイン全許可型
+  # のため、lishinc.com 配下の任意サブドメインから API を呼べてしまう。
+  # 必要なオリジンは SEO_FRONTEND_URL / IMAGE_AGENT_URL で完全一致許可する。
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
     entrypoint: gcloud
     args:
