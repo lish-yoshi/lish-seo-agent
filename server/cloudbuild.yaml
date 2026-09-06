@@ -39,6 +39,9 @@ steps:
       - '--max-instances=3'
       - '--set-env-vars=CLIENT_STORE=file,CLIENTS_FILE=/secrets/clients.json,NODE_ENV=production,SEO_FRONTEND_URL=https://seo.lishinc.com,IMAGE_AGENT_URL=https://imager.lishinc.com'
       - '--set-secrets=INTERNAL_API_KEY=INTERNAL_API_KEY:latest,GEMINI_API_KEY=GEMINI_API_KEY:latest,GOOGLE_API_KEY=GOOGLE_API_KEY:latest,GOOGLE_SEARCH_ENGINE_ID=GOOGLE_SEARCH_ENGINE_ID:latest,SLACK_WEBHOOK_URL=SLACK_WEBHOOK_URL:latest,/secrets/clients.json=CLIENTS_JSON:latest'
+      # clients.json が参照する WP_USER_*/WP_PASS_* も --set-secrets に追加が必要。
+      # 実サイト確定後に以下の形式で追記すること（値は Secret Manager に登録）:
+      #   WP_USER_LISH_CORP=WP_USER_LISH_CORP:latest,WP_PASS_LISH_CORP=WP_PASS_LISH_CORP:latest
 
 images:
   - 'asia-northeast1-docker.pkg.dev/$PROJECT_ID/seo-app/backend-server:latest'

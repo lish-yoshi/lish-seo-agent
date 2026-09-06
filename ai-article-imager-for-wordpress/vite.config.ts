@@ -9,6 +9,7 @@ export default defineConfig(({ mode }) => {
     const env = { ...parentEnv, ...localEnv };
     
     return {
+      base: env.VITE_BASE_PATH || '/',
       plugins: [react()],
       server: {
         port: 5177, // 画像生成エージェント専用ポート
