@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import type { SeoOutline } from "../types";
+import { getActiveClientId } from "../services/clientContext";
 
 interface ArticleDisplayProps {
   article: {
@@ -102,9 +103,16 @@ ${article.plainText}`;
         import.meta.env.VITE_IMAGE_GEN_URL ||
         "http://localhost:5177";
       const imageGenOrigin = new URL(imageGenUrl).origin;
+      const activeClientId = getActiveClientId();
+      if (!activeClientId) {
+        console.warn("⚠️ clientId が未選択の状態で画像生成エージェントを起動します");
+      }
+      const urlWithClient = activeClientId
+        ? `${imageGenUrl}${imageGenUrl.includes("?") ? "&" : "?"}clientId=${encodeURIComponent(activeClientId)}`
+        : imageGenUrl;
 
-      console.log(`🚀 AI Article Imager for WordPressを開きます: ${imageGenUrl}`);
-      const newWindow = window.open(imageGenUrl, "_blank");
+      console.log(`🚀 AI Article Imager for WordPressを開きます: ${urlWithClient}`);
+      const newWindow = window.open(urlWithClient, "_blank");
 
       if (newWindow) {
         setTimeout(() => {
@@ -114,6 +122,7 @@ ${article.plainText}`;
           newWindow.postMessage(
             {
               type: "ARTICLE_DATA",
+              clientId: activeClientId,
               data: articleData,
             },
             imageGenOrigin

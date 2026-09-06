@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { SearchIcon } from "./icons";
 import { SpreadsheetModeToggle } from "./SpreadsheetModeToggle";
 import { SpreadsheetDataViewer } from "./SpreadsheetDataViewer";
+import { getActiveClientId } from "../services/clientContext";
 
 interface SpreadsheetKeyword {
   row: number;
@@ -263,10 +264,17 @@ const KeywordInputForm: React.FC<KeywordInputFormProps> = ({
               });
             } else {
               const imageGenUrl = import.meta.env.VITE_IMAGE_GEN_URL || "http://localhost:5177";
-              const newWindow = window.open(imageGenUrl, "_blank");
+              const activeClientId = getActiveClientId();
+              if (!activeClientId) {
+                console.warn("⚠️ clientId が未選択の状態で画像生成エージェントを起動します");
+              }
+              const urlWithClient = activeClientId
+                ? `${imageGenUrl}${imageGenUrl.includes("?") ? "&" : "?"}clientId=${encodeURIComponent(activeClientId)}`
+                : imageGenUrl;
+              const newWindow = window.open(urlWithClient, "_blank");
               if (newWindow) {
                 setTimeout(() => {
-                  newWindow.postMessage({ type: "ARTICLE_DATA", data: testArticleData }, imageGenUrl);
+                  newWindow.postMessage({ type: "ARTICLE_DATA", clientId: activeClientId, data: testArticleData }, imageGenUrl);
                 }, 2000);
               }
             }

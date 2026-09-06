@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from "react";
 import type { SeoOutline, SeoOutlineV2, SubheadingWithNote } from "../types";
+import { getActiveClientId } from "../services/clientContext";
 import {
   generateArticle,
   regenerateSection,
@@ -1967,7 +1968,14 @@ ${
         const imageGenUrl =
           import.meta.env.VITE_IMAGE_GEN_URL ||
           "http://localhost:5177";
-        const newWindow = window.open(imageGenUrl, "_blank");
+        const activeClientId = getActiveClientId();
+        if (!activeClientId) {
+          console.warn("⚠️ clientId が未選択の状態で画像生成エージェントを起動します");
+        }
+        const urlWithClient = activeClientId
+          ? `${imageGenUrl}${imageGenUrl.includes("?") ? "&" : "?"}clientId=${encodeURIComponent(activeClientId)}`
+          : imageGenUrl;
+        const newWindow = window.open(urlWithClient, "_blank");
 
         if (newWindow) {
           setTimeout(() => {
@@ -1975,6 +1983,7 @@ ${
             newWindow.postMessage(
               {
                 type: "ARTICLE_DATA",
+                clientId: activeClientId,
                 data: imageGenData,
               },
               imageGenUrl
@@ -3025,7 +3034,14 @@ const startImageGeneration = async (
       const imageGenUrl =
         import.meta.env.VITE_IMAGE_GEN_URL ||
         "http://localhost:5177";
-      const newWindow = window.open(imageGenUrl, "_blank");
+      const activeClientId = getActiveClientId();
+      if (!activeClientId) {
+        console.warn("⚠️ clientId が未選択の状態で画像生成エージェントを起動します");
+      }
+      const urlWithClient = activeClientId
+        ? `${imageGenUrl}${imageGenUrl.includes("?") ? "&" : "?"}clientId=${encodeURIComponent(activeClientId)}`
+        : imageGenUrl;
+      const newWindow = window.open(urlWithClient, "_blank");
 
       if (newWindow) {
         setTimeout(() => {
@@ -3034,6 +3050,7 @@ const startImageGeneration = async (
             newWindow.postMessage(
               {
                 type: "ARTICLE_DATA",
+                clientId: activeClientId,
                 data: imageGenData,
               },
               imageGenUrl
