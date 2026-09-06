@@ -55,9 +55,18 @@ function createAdapter(client) {
 
   const url = (resource) => `${cms.baseUrl}/api/${resource}`;
 
+  function cmsError(response, body, fallback) {
+    const msg = body.errors?.[0]?.message || body.message || fallback;
+    const err = new Error(msg);
+    err.cmsCode = body.code || null;
+    err.cmsStatus = body.data?.status ?? response.status;
+    err.httpStatus = response.status;
+    return err;
+  }
+
   async function readError(res, fallback) {
     const body = await res.json().catch(() => ({}));
-    return body.errors?.[0]?.message || body.message || fallback;
+    throw cmsError(res, body, fallback);
   }
 
   function toArticle(doc) {
@@ -108,7 +117,7 @@ function createAdapter(client) {
       });
 
       if (!res.ok) {
-        throw new Error(await readError(res, "画像アップロードに失敗しました"));
+        await readError(res, "画像アップロードに失敗しました");
       }
 
       const body = await res.json();
@@ -129,7 +138,7 @@ function createAdapter(client) {
       });
 
       if (!res.ok) {
-        throw new Error(await readError(res, "記事作成に失敗しました"));
+        await readError(res, "記事作成に失敗しました");
       }
 
       const body = await res.json();
@@ -142,7 +151,7 @@ function createAdapter(client) {
 
       const res = await fetch(`${url(collection)}?${query}`, { headers });
       if (!res.ok) {
-        throw new Error(await readError(res, "記事一覧の取得に失敗しました"));
+        await readError(res, "記事一覧の取得に失敗しました");
       }
 
       const body = await res.json();
@@ -164,7 +173,7 @@ function createAdapter(client) {
       });
 
       if (!res.ok) {
-        throw new Error(await readError(res, "記事更新に失敗しました"));
+        await readError(res, "記事更新に失敗しました");
       }
 
       const body = await res.json();
@@ -174,7 +183,9 @@ function createAdapter(client) {
     async verify() {
       const res = await fetch(`${url(collection)}?limit=1`, { headers });
       if (!res.ok) {
-        return { ok: false, error: await readError(res, "認証に失敗しました") };
+        const body = await res.json().catch(() => ({}));
+        const msg = body.errors?.[0]?.message || body.message || "認証に失敗しました";
+        return { ok: false, error: msg };
       }
       return { ok: true, as: `${authCollection} API-Key` };
     },

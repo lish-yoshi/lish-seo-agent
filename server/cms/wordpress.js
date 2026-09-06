@@ -18,9 +18,17 @@ function endpoint(cms, resource) {
   return `${cms.baseUrl}/wp-json/wp/v2/${resource}`;
 }
 
+function cmsError(response, body, fallback) {
+  const err = new Error(body.message || fallback);
+  err.cmsCode = body.code || null;
+  err.cmsStatus = body.data?.status ?? response.status;
+  err.httpStatus = response.status;
+  return err;
+}
+
 async function readError(response, fallback) {
   const body = await response.json().catch(() => ({}));
-  return body.message || fallback;
+  throw cmsError(response, body, fallback);
 }
 
 function createAdapter(client) {
@@ -53,7 +61,7 @@ function createAdapter(client) {
       });
 
       if (!res.ok) {
-        throw new Error(await readError(res, "画像アップロードに失敗しました"));
+        await readError(res, "画像アップロードに失敗しました");
       }
 
       const data = await res.json();
@@ -82,7 +90,7 @@ function createAdapter(client) {
       });
 
       if (!res.ok) {
-        throw new Error(await readError(res, "記事作成に失敗しました"));
+        await readError(res, "記事作成に失敗しました");
       }
 
       const data = await res.json();
@@ -100,7 +108,7 @@ function createAdapter(client) {
       });
 
       if (!res.ok) {
-        throw new Error(await readError(res, "記事一覧の取得に失敗しました"));
+        await readError(res, "記事一覧の取得に失敗しました");
       }
 
       const rows = await res.json();
@@ -140,7 +148,7 @@ function createAdapter(client) {
       });
 
       if (!res.ok) {
-        throw new Error(await readError(res, "記事更新に失敗しました"));
+        await readError(res, "記事更新に失敗しました");
       }
 
       const data = await res.json();
@@ -153,7 +161,8 @@ function createAdapter(client) {
         headers: { Authorization: authHeader(cms) },
       });
       if (!res.ok) {
-        return { ok: false, error: await readError(res, "認証に失敗しました") };
+        const body = await res.json().catch(() => ({}));
+        return { ok: false, error: body.message || "認証に失敗しました" };
       }
       const me = await res.json();
       return { ok: true, as: me.name || me.slug };

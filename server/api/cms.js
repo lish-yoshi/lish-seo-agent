@@ -61,11 +61,17 @@ function handle(res, err, label, ctx) {
     clientId: ctx?.client?.id ?? null,
     baseUrl: ctx?.client?.cms?.baseUrl ?? null,
     error: err.message,
+    cmsCode: err.cmsCode ?? null,
+    cmsStatus: err.cmsStatus ?? null,
     timestamp: new Date().toISOString(),
   }));
-  res.status(500).json({
+  // 上流CMSの 401/403/404 は 502（Bad Gateway）として返す
+  const httpStatus = [401, 403, 404].includes(err.httpStatus) ? 502 : 500;
+  res.status(httpStatus).json({
     error:
       process.env.NODE_ENV === "production" ? `${label}に失敗しました` : err.message,
+    cmsCode: err.cmsCode ?? null,
+    cmsStatus: err.cmsStatus ?? null,
   });
 }
 
