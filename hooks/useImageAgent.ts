@@ -141,12 +141,19 @@ export function useImageAgent(options: UseImageAgentOptions = {}): UseImageAgent
   const openInNewTab = useCallback(
     (articleData: ArticleDataForImageAgent): Window | null => {
       const url = getImageGenUrl();
-      console.log("🔗 画像生成エージェントを別タブで開きます:", url);
+      const activeClientId = getActiveClientId();
+      if (!activeClientId) {
+        console.warn("⚠️ clientId が未選択の状態で画像生成エージェントを起動します");
+      }
+      const urlWithClient = activeClientId
+        ? `${url}${url.includes("?") ? "&" : "?"}clientId=${encodeURIComponent(activeClientId)}`
+        : url;
+      console.log("🔗 画像生成エージェントを別タブで開きます:", urlWithClient);
 
       currentArticleDataRef.current = articleData;
 
       const newWindow = window.open(
-        url,
+        urlWithClient,
         "_blank",
         "width=1200,height=800,scrollbars=yes,resizable=yes"
       );

@@ -10,8 +10,7 @@
 
 const store = require("../clients/store");
 const { createCmsAdapter } = require("../cms");
-
-const DEFAULT_CLIENT_ID = process.env.DEFAULT_CLIENT_ID || "";
+const DEFAULT_CLIENT_ID = require("../clients/resolveDefaultClientId");
 
 /** クエリ・ボディ・ヘッダーのいずれからでも clientId を拾う */
 function readClientId(req) {
@@ -54,8 +53,16 @@ async function resolve(req, res) {
 }
 
 /** 例外を握って本番ではメッセージを伏せる共通ハンドラ */
-function handle(res, err, label) {
+function handle(res, err, label, ctx) {
   console.error(`❌ ${label}:`, err.message);
+  console.log(JSON.stringify({
+    event: "cms_error",
+    label,
+    clientId: ctx?.client?.id ?? null,
+    baseUrl: ctx?.client?.cms?.baseUrl ?? null,
+    error: err.message,
+    timestamp: new Date().toISOString(),
+  }));
   res.status(500).json({
     error:
       process.env.NODE_ENV === "production" ? `${label}に失敗しました` : err.message,
@@ -113,9 +120,16 @@ function register(app) {
         altText,
       });
       console.log(`✅ [${ctx.client.id}] 画像アップロード成功: ${result.id}`);
+      console.log(JSON.stringify({
+        event: "cms_upload_image",
+        clientId: ctx.client.id,
+        baseUrl: ctx.client.cms.baseUrl,
+        resourceId: result.id,
+        timestamp: new Date().toISOString(),
+      }));
       res.json({ ...result, source_url: result.url });
     } catch (err) {
-      handle(res, err, "画像アップロード");
+      handle(res, err, "画像アップロード", ctx);
     }
   });
 
@@ -137,9 +151,16 @@ function register(app) {
         metaDescription,
       });
       console.log(`✅ [${ctx.client.id}] 記事作成成功: ${result.id}`);
+      console.log(JSON.stringify({
+        event: "cms_create_post",
+        clientId: ctx.client.id,
+        baseUrl: ctx.client.cms.baseUrl,
+        resourceId: result.id,
+        timestamp: new Date().toISOString(),
+      }));
       res.json({ ...result, link: result.url });
     } catch (err) {
-      handle(res, err, "記事作成");
+      handle(res, err, "記事作成", ctx);
     }
   });
 
@@ -154,7 +175,7 @@ function register(app) {
       });
       res.json({ posts });
     } catch (err) {
-      handle(res, err, "記事一覧の取得");
+      handle(res, err, "記事一覧の取得", ctx);
     }
   });
 
@@ -164,9 +185,16 @@ function register(app) {
     try {
       const result = await ctx.cms.updatePost(req.params.id, req.body);
       console.log(`✅ [${ctx.client.id}] 記事更新成功: ${req.params.id}`);
+      console.log(JSON.stringify({
+        event: "cms_update_post",
+        clientId: ctx.client.id,
+        baseUrl: ctx.client.cms.baseUrl,
+        resourceId: req.params.id,
+        timestamp: new Date().toISOString(),
+      }));
       res.json(result);
     } catch (err) {
-      handle(res, err, "記事更新");
+      handle(res, err, "記事更新", ctx);
     }
   });
 
@@ -176,7 +204,7 @@ function register(app) {
     try {
       res.json(await ctx.cms.verify());
     } catch (err) {
-      handle(res, err, "接続確認");
+      handle(res, err, "接続確認", ctx);
     }
   });
 

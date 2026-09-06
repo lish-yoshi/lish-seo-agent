@@ -25,7 +25,7 @@ async function resolveSpreadsheetId(req) {
     req.body?.clientId ||
     req.query?.clientId ||
     req.headers?.["x-client-id"] ||
-    process.env.DEFAULT_CLIENT_ID ||
+    require("../clients/resolveDefaultClientId") ||
     null;
 
   if (clientId) {

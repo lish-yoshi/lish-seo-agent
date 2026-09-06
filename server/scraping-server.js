@@ -1155,12 +1155,6 @@ const server = app.listen(PORT, "0.0.0.0", () => {
     console.log("⚠️  認証: 無効（INTERNAL_API_KEYが未設定）");
   }
 
-  if (process.env.NODE_ENV === "production" && process.env.DEFAULT_CLIENT_ID) {
-    console.warn(
-      "[WARN] DEFAULT_CLIENT_ID is set in production. Requests without an explicit clientId will silently post to this client."
-    );
-  }
-
   console.log("🔥 SERVER IS READY TO RECEIVE REQUESTS!");
 });
 
