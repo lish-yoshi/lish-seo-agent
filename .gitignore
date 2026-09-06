@@ -41,5 +41,6 @@ data/*-backup.json
 
 # クライアント設定（サイトごとの投稿先。環境変数名のみ含むが念のため）
 clients.json
+clients.prod.json
 phase1-files.zip
 phase1-multitenant.patch
