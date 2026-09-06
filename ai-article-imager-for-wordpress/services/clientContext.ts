@@ -17,5 +17,22 @@ export function getClientId(): string | null {
 }
 
 export function clientHeaders(): Record<string, string> {
-  return clientId ? { "x-client-id": clientId } : {};
+  const headers: Record<string, string> = {};
+  const apiKey = import.meta.env.VITE_INTERNAL_API_KEY;
+  if (apiKey) headers["x-api-key"] = apiKey;
+  if (clientId) headers["x-client-id"] = clientId;
+  return headers;
+}
+
+/**
+ * 投稿系の操作前に clientId が指定されていることを検証する。
+ * null の場合は例外を投げて処理を中断する。
+ */
+export function requireClientId(): string {
+  if (!clientId) {
+    throw new Error(
+      "投稿先クライアントが指定されていません。メインアプリから起動してください。"
+    );
+  }
+  return clientId;
 }

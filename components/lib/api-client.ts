@@ -1,3 +1,6 @@
+// [UNUSED] Next.js からの流用。process.env 参照のためVite環境では動作しない。
+// 使用する場合は clientHeaders() ベースに書き換えること。
+//
 // GCP Cloud Run APIクライアント
 
 const API_BASE_URL =

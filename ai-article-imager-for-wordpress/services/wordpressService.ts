@@ -1,15 +1,9 @@
-import { clientHeaders } from './clientContext';
+import { clientHeaders, requireClientId } from './clientContext';
 
 import { WPConfig, PostConfig, H2Section } from '../types';
 
 // サーバーのAPIエンドポイント（環境変数から取得、デフォルトはローカル）
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
-
-// 認証ヘッダーを取得（ローカル開発用）
-const getAuthHeaders = () => {
-    const apiKey = import.meta.env.VITE_INTERNAL_API_KEY;
-    return apiKey ? { 'x-api-key': apiKey } : {};
-};
 
 // Function to upload an image to WordPress (サーバー経由)
 export const uploadImage = async (
@@ -19,12 +13,12 @@ export const uploadImage = async (
 ): Promise<{ id: number; source_url: string }> => {
     const filename = `image-for-h2-${section.id}.jpg`;
 
+    requireClientId();
     const response = await fetch(`${API_BASE_URL}/cms/upload-image`, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
-            ...getAuthHeaders(),
-            ...clientHeaders()
+            ...clientHeaders(),
         },
         body: JSON.stringify({
             base64Image,
@@ -60,12 +54,12 @@ export const createPost = async (
         postData.slug = postConfig.slug;
     }
 
+    requireClientId();
     const response = await fetch(`${API_BASE_URL}/cms/create-post`, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
-            ...getAuthHeaders(),
-            ...clientHeaders()
+            ...clientHeaders(),
         },
         body: JSON.stringify(postData)
     });

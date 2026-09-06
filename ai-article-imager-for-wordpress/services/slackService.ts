@@ -1,3 +1,5 @@
+import { clientHeaders } from "./clientContext";
+
 // Slack通知サービス（画像生成エージェント用）
 
 interface SlackMessage {
@@ -26,12 +28,11 @@ class SlackService {
    */
   private async send(message: SlackMessage): Promise<void> {
     try {
-      const apiKey = import.meta.env.VITE_INTERNAL_API_KEY;
       const response = await fetch(this.SLACK_NOTIFY_URL, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          ...(apiKey && { "x-api-key": apiKey }),
+          ...clientHeaders(),
         },
         body: JSON.stringify({ message }),
       });
