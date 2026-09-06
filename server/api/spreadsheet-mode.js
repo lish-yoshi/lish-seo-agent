@@ -15,12 +15,38 @@
 
 const { google } = require("googleapis");
 
-const SPREADSHEET_ID = process.env.SPREADSHEET_ID || "";
+const store = require("../clients/store");
+
+/**
+ * リクエストの clientId からスプレッドシートIDを解決する。
+ * clientId が無い場合は従来どおり環境変数へフォールバックするので、
+ * 単一クライアント運用のままでも動作は変わらない。
+ */
+async function resolveSpreadsheetId(req) {
+  const clientId =
+    req.body?.clientId ||
+    req.query?.clientId ||
+    req.headers?.["x-client-id"] ||
+    process.env.DEFAULT_CLIENT_ID ||
+    null;
+
+  if (clientId) {
+    try {
+      const client = await store.getClient(clientId);
+      if (client && client.spreadsheetId) return client.spreadsheetId;
+      console.warn(`⚠️ [${clientId}] spreadsheetId が未設定です`);
+    } catch (err) {
+      console.error("❌ クライアント設定の読み込みに失敗:", err.message);
+    }
+  }
+  return process.env.SPREADSHEET_ID || "";
+}
 
 /**
  * スプレッドシートから「1」または「１」マークのあるキーワードを取得
  */
 async function getMarkedKeywords(req, res) {
+  const spreadsheetId = await resolveSpreadsheetId(req);
   try {
     console.log("📊 スプレッドシートモード: キーワード取得開始");
 
@@ -68,7 +94,7 @@ async function getMarkedKeywords(req, res) {
     console.log("📋 スプレッドシートからデータを取得中...");
 
     const response = await sheets.spreadsheets.values.get({
-      spreadsheetId: SPREADSHEET_ID,
+      spreadsheetId,
       range: range,
     });
 
@@ -178,6 +204,7 @@ async function getMarkedKeywords(req, res) {
  * 内部リンク挿入用
  */
 async function getInternalLinkMap(req, res) {
+  const spreadsheetId = await resolveSpreadsheetId(req);
   try {
     console.log("🔗 内部リンクマップ取得開始");
 
@@ -221,7 +248,7 @@ async function getInternalLinkMap(req, res) {
     // シート1のA列〜G列を取得（最大500行）
     const range = "シート1!A1:G500";
     const response = await sheets.spreadsheets.values.get({
-      spreadsheetId: SPREADSHEET_ID,
+      spreadsheetId,
       range: range,
     });
 

@@ -32,6 +32,8 @@ import FactCheckPage from "./components/FactCheckPage";
 import ArticleRevisionForm from "./components/ArticleRevisionForm";
 import { useImageAgent, type ArticleDataForImageAgent } from "./hooks/useImageAgent";
 import { ImageGeneratorIframe } from "./components/ImageGeneratorIframe";
+import ClientSelector from "./components/ClientSelector";
+import { restoreActiveClient, clientHeaders } from "./services/clientContext";
 
 const App: React.FC = () => {
   const [currentPage, setCurrentPage] = useState<
@@ -107,6 +109,11 @@ const App: React.FC = () => {
   const handleGenerateFullAutoRef = useRef<any>(null); // handleGenerateFullAutoの参照
 
   // refを常に最新のstateに同期
+  // 前回選択したクライアントを復元
+  useEffect(() => {
+    restoreActiveClient();
+  }, []);
+
   useEffect(() => {
     queueIndexRef.current = queueIndex;
   }, [queueIndex]);
@@ -1261,6 +1268,7 @@ const App: React.FC = () => {
         method: "GET",
         headers: {
           "x-api-key": apiKey,
+          ...clientHeaders(),
         },
       });
 
@@ -1389,6 +1397,8 @@ const App: React.FC = () => {
           </button>
         </div>
       </header>
+
+      <ClientSelector />
 
       <main className="w-full max-w-5xl flex-grow">
         <div className="bg-white rounded-2xl shadow-lg p-6 sm:p-8 border border-gray-200">

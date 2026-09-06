@@ -15,11 +15,11 @@ const genAI = new GoogleGenerativeAI(
 );
 
 // 環境変数から自社URLパターンを取得（出典優先順位に使用）
-const COMPANY_NOTE_URL = import.meta.env.VITE_COMPANY_NOTE_URL || "";
-const COMPANY_MEDIA_URL = import.meta.env.VITE_COMPANY_MEDIA_URL || "";
+import { getBrand } from "./clientContext";
 
 // 出典URL優先順位ルールを動的に生成
 function getCitationPriorityRules(): string {
+  const { noteUrl: COMPANY_NOTE_URL, mediaUrl: COMPANY_MEDIA_URL } = getBrand();
   if (!COMPANY_NOTE_URL && !COMPANY_MEDIA_URL) {
     // 環境変数が未設定の場合は汎用的なルール
     return `## 出典URL優先順位ルール（厳守）
@@ -47,6 +47,7 @@ function getCitationPriorityRules(): string {
 
 // 内部リンク保護ルールを動的に生成
 function getInternalLinkProtectionRule(): string {
+  const { noteUrl: COMPANY_NOTE_URL, mediaUrl: COMPANY_MEDIA_URL } = getBrand();
   if (COMPANY_MEDIA_URL) {
     return `【内部リンク保護】見出し間に配置されたURLベタ貼り（https://${COMPANY_MEDIA_URL}/...）は絶対に削除・変更しない`;
   }
@@ -55,6 +56,7 @@ function getInternalLinkProtectionRule(): string {
 
 // 出典URL優先順位の修正ルールを動的に生成
 function getCitationPriorityRevisionRule(): string {
+  const { noteUrl: COMPANY_NOTE_URL, mediaUrl: COMPANY_MEDIA_URL } = getBrand();
   if (!COMPANY_NOTE_URL && !COMPANY_MEDIA_URL) {
     return `【出典URL優先順位】自社一次情報（note等）があれば、自社メディアより優先して採用する（URLは必ずaタグで埋め込み、ベタ貼り禁止）`;
   }

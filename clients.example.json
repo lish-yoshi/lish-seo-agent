@@ -1,0 +1,114 @@
+{
+  "_readme": [
+    "このファイルを clients.json にコピーして使います。clients.json は .gitignore に入れてください。",
+    "認証情報そのものは書きません。読むべき環境変数の名前だけを書きます。",
+    "ローカルでは .env に、Cloud Run では Secret Manager 参照として同じ名前の変数を用意します。"
+  ],
+
+  "clients": [
+    {
+      "id": "lish-corp",
+      "label": "LISH コーポレートサイト",
+      "enabled": true,
+      "brand": {
+        "companyName": "LISH株式会社",
+        "serviceName": "SEO＋AIO対策",
+        "noteUrl": "note.com/lish",
+        "mediaUrl": "media.lishinc.com",
+        "siteUrl": "lishinc.com"
+      },
+      "cms": {
+        "type": "wordpress",
+        "baseUrl": "https://lishinc.com",
+        "defaultPostStatus": "draft",
+        "credentials": {
+          "usernameEnv": "WP_USER_LISH_CORP",
+          "passwordEnv": "WP_PASS_LISH_CORP"
+        }
+      },
+      "spreadsheetId": "",
+      "companyDataFolderId": ""
+    },
+
+    {
+      "id": "lish-payload",
+      "label": "自社案件（Payload CMS）",
+      "enabled": false,
+      "_note": "Phase 2 で有効化する。コレクション名とフィールド名は実物に合わせて調整すること。",
+      "brand": {
+        "companyName": "LISH株式会社",
+        "serviceName": "",
+        "noteUrl": "",
+        "mediaUrl": "",
+        "siteUrl": ""
+      },
+      "cms": {
+        "type": "payload",
+        "baseUrl": "https://example.com",
+        "collection": "posts",
+        "mediaCollection": "media",
+        "authCollection": "users",
+        "defaultPostStatus": "draft",
+        "fieldMap": {
+          "title": "title",
+          "content": "content",
+          "slug": "slug",
+          "metaDescription": "meta.description"
+        },
+        "credentials": {
+          "apiKeyEnv": "PAYLOAD_KEY_SELF"
+        }
+      },
+      "spreadsheetId": "",
+      "companyDataFolderId": ""
+    },
+
+    {
+      "id": "store-01",
+      "label": "自社店舗サイト 1",
+      "enabled": true,
+      "brand": {
+        "companyName": "",
+        "serviceName": "",
+        "noteUrl": "",
+        "mediaUrl": "",
+        "siteUrl": ""
+      },
+      "cms": {
+        "type": "wordpress",
+        "baseUrl": "https://example.com",
+        "defaultPostStatus": "draft",
+        "credentials": {
+          "usernameEnv": "WP_USER_STORE_01",
+          "passwordEnv": "WP_PASS_STORE_01"
+        }
+      },
+      "spreadsheetId": "",
+      "companyDataFolderId": ""
+    },
+
+    {
+      "id": "client-a",
+      "label": "クライアントA",
+      "enabled": true,
+      "brand": {
+        "companyName": "",
+        "serviceName": "",
+        "noteUrl": "",
+        "mediaUrl": "",
+        "siteUrl": ""
+      },
+      "cms": {
+        "type": "wordpress",
+        "baseUrl": "https://example.com",
+        "defaultPostStatus": "draft",
+        "credentials": {
+          "usernameEnv": "WP_USER_CLIENT_A",
+          "passwordEnv": "WP_PASS_CLIENT_A"
+        }
+      },
+      "spreadsheetId": "",
+      "companyDataFolderId": ""
+    }
+  ]
+}

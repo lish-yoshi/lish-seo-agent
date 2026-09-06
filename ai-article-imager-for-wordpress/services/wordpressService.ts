@@ -1,3 +1,4 @@
+import { clientHeaders } from './clientContext';
 
 import { WPConfig, PostConfig, H2Section } from '../types';
 
@@ -18,11 +19,12 @@ export const uploadImage = async (
 ): Promise<{ id: number; source_url: string }> => {
     const filename = `image-for-h2-${section.id}.jpg`;
 
-    const response = await fetch(`${API_BASE_URL}/wordpress/upload-image`, {
+    const response = await fetch(`${API_BASE_URL}/cms/upload-image`, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
-            ...getAuthHeaders()
+            ...getAuthHeaders(),
+            ...clientHeaders()
         },
         body: JSON.stringify({
             base64Image,
@@ -58,11 +60,12 @@ export const createPost = async (
         postData.slug = postConfig.slug;
     }
 
-    const response = await fetch(`${API_BASE_URL}/wordpress/create-post`, {
+    const response = await fetch(`${API_BASE_URL}/cms/create-post`, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
-            ...getAuthHeaders()
+            ...getAuthHeaders(),
+            ...clientHeaders()
         },
         body: JSON.stringify(postData)
     });

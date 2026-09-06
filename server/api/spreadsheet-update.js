@@ -13,13 +13,39 @@
 
 const { google } = require("googleapis");
 
-const SPREADSHEET_ID = process.env.SPREADSHEET_ID || "";
+const store = require("../clients/store");
+
+/**
+ * リクエストの clientId からスプレッドシートIDを解決する。
+ * clientId が無い場合は従来どおり環境変数へフォールバックするので、
+ * 単一クライアント運用のままでも動作は変わらない。
+ */
+async function resolveSpreadsheetId(req) {
+  const clientId =
+    req.body?.clientId ||
+    req.query?.clientId ||
+    req.headers?.["x-client-id"] ||
+    process.env.DEFAULT_CLIENT_ID ||
+    null;
+
+  if (clientId) {
+    try {
+      const client = await store.getClient(clientId);
+      if (client && client.spreadsheetId) return client.spreadsheetId;
+      console.warn(`⚠️ [${clientId}] spreadsheetId が未設定です`);
+    } catch (err) {
+      console.error("❌ クライアント設定の読み込みに失敗:", err.message);
+    }
+  }
+  return process.env.SPREADSHEET_ID || "";
+}
 
 /**
  * スプレッドシートのキーワードに一致する行を更新
  * C列（編集用URL）、D列（Slug）、E列（タイトル）、G列（メタディスクリプション）
  */
 async function updateSpreadsheetCell(req, res) {
+  const spreadsheetId = await resolveSpreadsheetId(req);
   try {
     const { keyword, url, slug, title, metaDescription } = req.body;
 
@@ -84,7 +110,7 @@ async function updateSpreadsheetCell(req, res) {
     // B列（キーワード列）全体を取得
     const searchRange = "シート1!B:B";
     const searchResponse = await sheets.spreadsheets.values.get({
-      spreadsheetId: SPREADSHEET_ID,
+      spreadsheetId,
       range: searchRange,
     });
 
@@ -111,7 +137,7 @@ async function updateSpreadsheetCell(req, res) {
     // C列（編集用URL）を更新
     const urlUpdateRange = `シート1!C${targetRow}`;
     await sheets.spreadsheets.values.update({
-      spreadsheetId: SPREADSHEET_ID,
+      spreadsheetId,
       range: urlUpdateRange,
       valueInputOption: "RAW",
       resource: {
@@ -124,7 +150,7 @@ async function updateSpreadsheetCell(req, res) {
     if (slug) {
       const slugUpdateRange = `シート1!D${targetRow}`;
       await sheets.spreadsheets.values.update({
-        spreadsheetId: SPREADSHEET_ID,
+        spreadsheetId,
         range: slugUpdateRange,
         valueInputOption: "RAW",
         resource: {
@@ -138,7 +164,7 @@ async function updateSpreadsheetCell(req, res) {
     if (title) {
       const titleUpdateRange = `シート1!E${targetRow}`;
       await sheets.spreadsheets.values.update({
-        spreadsheetId: SPREADSHEET_ID,
+        spreadsheetId,
         range: titleUpdateRange,
         valueInputOption: "RAW",
         resource: {
@@ -152,7 +178,7 @@ async function updateSpreadsheetCell(req, res) {
     if (metaDescription) {
       const metaDescUpdateRange = `シート1!G${targetRow}`;
       await sheets.spreadsheets.values.update({
-        spreadsheetId: SPREADSHEET_ID,
+        spreadsheetId,
         range: metaDescUpdateRange,
         valueInputOption: "RAW",
         resource: {

@@ -1,3 +1,4 @@
+import { getActiveClientId } from "../services/clientContext";
 /**
  * useImageAgent - 画像生成エージェント起動用の共通フック
  *
@@ -157,6 +158,7 @@ export function useImageAgent(options: UseImageAgentOptions = {}): UseImageAgent
           // 画像生成エージェントが期待する形式: { type: "ARTICLE_DATA", data: { htmlContent, ... } }
           const messageData = {
             type: "ARTICLE_DATA",
+            clientId: getActiveClientId(),
             data: {
               title: articleData.title,
               htmlContent: articleData.content, // content → htmlContent
@@ -204,6 +206,7 @@ export function useImageAgent(options: UseImageAgentOptions = {}): UseImageAgent
     const articleData = embedState.articleData;
     const messageData = {
       type: "ARTICLE_DATA",
+            clientId: getActiveClientId(),
       data: {
         title: articleData.title,
         htmlContent: articleData.content, // content → htmlContent

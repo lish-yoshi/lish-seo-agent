@@ -1,3 +1,4 @@
+import { getBrand } from './clientContext';
 // 記事執筆サービス Ver.2 - 新レギュレーション対応版
 // 指示タグシステム、厳密な文字数管理、構造化されたセクション構成を実装
 
@@ -236,7 +237,7 @@ export async function generateArticleV2(
     const sectionCharCount = charDistribution.get(`section_${i}`) || 2000;
     
     // サービス訴求セクションかチェック（自社サービス名を環境変数から取得）
-    const serviceName = import.meta.env.VITE_SERVICE_NAME || '当社サービス';
+    const serviceName = getBrand().serviceName;
     const isServiceSection = section.heading.includes(serviceName) || section.heading.includes('サービス訴求');
 
     // セクション生成プロンプト

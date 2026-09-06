@@ -1,5 +1,6 @@
 import React, { useState, useCallback, useEffect, useRef } from "react";
 import { WPConfig, PostConfig, H2Section, AppState, ReportLog } from "./types";
+import { setClientId, clientHeaders } from "./services/clientContext";
 import { extractH1Title } from "./utils/parsers";
 import {
   parseHtmlWithIntelligentMatching,
@@ -74,6 +75,7 @@ const App: React.FC<AppProps> = ({ initialArticleData }) => {
         const response = await fetch(`${apiUrl}/wordpress/config`, {
           headers: {
             "x-api-key": apiKey,
+            ...clientHeaders(),
           },
         });
 
@@ -184,6 +186,7 @@ const App: React.FC<AppProps> = ({ initialArticleData }) => {
       console.log("📨 postMessageを受信:", event);
 
       if (event.data?.type === "ARTICLE_DATA" && event.data?.data) {
+        setClientId(event.data?.clientId);
         const articleData = event.data.data;
 
         // ✅ localStorage に保存（ページ更新に備える・容量不足時はスキップ）
@@ -339,6 +342,7 @@ const App: React.FC<AppProps> = ({ initialArticleData }) => {
 
       // 記事データ転送メッセージの処理
       if (event.data?.type === "ARTICLE_DATA_TRANSFER") {
+        setClientId(event.data?.clientId);
         const articleData = event.data.data;
         console.log("📨 postMessageで記事データを受信しました！");
         console.log("  タイトル:", articleData.title);

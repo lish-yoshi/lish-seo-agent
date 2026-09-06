@@ -1,3 +1,4 @@
+import { clientHeaders } from "../services/clientContext";
 import React, { useState, useEffect, useRef } from "react";
 import { ReportLog, PostConfig, WPConfig, H2Section } from "../types";
 import { uploadImage, createPost } from "../services/wordpressService";
@@ -387,6 +388,7 @@ export const ReportView: React.FC<ReportViewProps> = ({
             headers: {
               "Content-Type": "application/json",
               "x-api-key": import.meta.env.VITE_INTERNAL_API_KEY || "",
+              ...clientHeaders(),
             },
             body: JSON.stringify({
               keyword: keyword,

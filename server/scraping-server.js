@@ -15,6 +15,8 @@ const path = require("path");
 const chromium = require("@sparticuz/chromium");
 require("dotenv").config({ path: path.join(__dirname, "..", ".env") });
 
+const cmsRoutes = require("./api/cms");
+
 const app = express();
 const PORT = process.env.PORT || 3001; // Renderでは環境変数PORTを使用
 
@@ -1001,279 +1003,9 @@ app.post("/api/slack-notify", async (req, res) => {
 });
 
 // WordPress 設定取得エンドポイント
-app.get("/api/wordpress/config", (req, res) => {
-  console.log("📋 WordPress設定を取得中...");
-
-  // WordPress設定を環境変数から取得
-  const wpBaseUrl = process.env.WP_BASE_URL || process.env.VITE_WP_BASE_URL;
-  const wpUsername = process.env.WP_USERNAME || process.env.VITE_WP_USERNAME;
-  const wpDefaultPostStatus =
-    process.env.WP_DEFAULT_POST_STATUS ||
-    process.env.VITE_WP_DEFAULT_POST_STATUS ||
-    "draft";
-
-  console.log("✅ WordPress設定を返却:", {
-    baseUrl: wpBaseUrl ? "設定済み" : "未設定",
-    username: wpUsername ? "設定済み" : "未設定",
-    defaultPostStatus: wpDefaultPostStatus,
-  });
-
-  res.json({
-    baseUrl: wpBaseUrl || "",
-    username: wpUsername || "",
-    defaultPostStatus: wpDefaultPostStatus,
-  });
-});
-
-// WordPress プロキシエンドポイント（画像アップロード）
-app.post("/api/wordpress/upload-image", async (req, res) => {
-  console.log("🔍 === WordPress画像アップロード デバッグ開始 ===");
-  console.log("📥 リクエストデータ:");
-  console.log("  - filename:", req.body.filename);
-  console.log("  - title:", req.body.title);
-  console.log("  - altText:", req.body.altText);
-  console.log(
-    "  - base64Image length:",
-    req.body.base64Image ? req.body.base64Image.length : 0
-  );
-  console.log("  - リクエスト元IP:", req.ip);
-  console.log("  - User-Agent:", req.headers["user-agent"]);
-
-  const { base64Image, filename, title, altText } = req.body;
-
-  if (!base64Image || !filename) {
-    console.log("❌ 必須パラメータ不足");
-    return res
-      .status(400)
-      .json({ error: "base64Image and filename are required" });
-  }
-
-  // WordPress設定を環境変数から取得
-  const wpBaseUrl = process.env.WP_BASE_URL || process.env.VITE_WP_BASE_URL;
-  const wpUsername = process.env.WP_USERNAME || process.env.VITE_WP_USERNAME;
-  const wpAppPassword =
-    process.env.WP_APP_PASSWORD || process.env.VITE_WP_APP_PASSWORD;
-
-  console.log("🔧 WordPress設定確認:");
-  console.log("  - wpBaseUrl:", wpBaseUrl ? "設定済み" : "未設定");
-  console.log("  - wpUsername:", wpUsername ? "設定済み" : "未設定");
-  console.log("  - wpAppPassword:", wpAppPassword ? "設定済み" : "未設定");
-
-  if (!wpBaseUrl || !wpUsername || !wpAppPassword) {
-    console.error("❌ WordPress設定が不完全です");
-    return res
-      .status(500)
-      .json({ error: "WordPress configuration is incomplete" });
-  }
-
-  try {
-    // Base64をBufferに変換
-    const base64Data = base64Image.replace(/^data:image\/\w+;base64,/, "");
-    const buffer = Buffer.from(base64Data, "base64");
-    console.log("📊 画像データ変換:");
-    console.log("  - 元のbase64長:", base64Image.length);
-    console.log("  - 変換後buffer長:", buffer.length);
-    console.log(
-      "  - 推定ファイルサイズ:",
-      Math.round(buffer.length / 1024),
-      "KB"
-    );
-
-    // FormDataを作成（node-fetchはFormDataをサポートしていないため、手動で構築）
-    const FormData = require("form-data");
-    const formData = new FormData();
-    formData.append("file", buffer, {
-      filename: filename,
-      contentType: "image/jpeg",
-    });
-
-    if (title) formData.append("title", title);
-    if (altText) formData.append("alt_text", altText);
-
-    // WordPress REST APIにアップロード
-    const apiUrl = wpBaseUrl.replace(/\/+$/, "") + "/wp-json/wp/v2/media";
-    const authHeader =
-      "Basic " +
-      Buffer.from(`${wpUsername}:${wpAppPassword}`).toString("base64");
-
-    console.log("🌐 WordPress API リクエスト詳細:");
-    console.log("  - API URL:", apiUrl);
-    console.log("  - Method: POST");
-    console.log(
-      "  - Auth Header:",
-      authHeader ? `Basic ${authHeader.substring(6, 10)}****` : "なし"
-    );
-    console.log("  - FormData Headers:", formData.getHeaders());
-
-    console.log("📤 WordPress APIにリクエスト送信中...");
-    const response = await fetch(apiUrl, {
-      method: "POST",
-      headers: {
-        Authorization: authHeader,
-        ...formData.getHeaders(),
-      },
-      body: formData,
-    });
-
-    console.log("📥 WordPress API レスポンス受信:");
-    console.log("  - Status:", response.status);
-    console.log("  - Status Text:", response.statusText);
-    console.log(
-      "  - Headers:",
-      JSON.stringify(Object.fromEntries(response.headers), null, 2)
-    );
-
-    // レスポンスボディを取得（エラーの場合も含む）
-    const responseText = await response.text();
-    console.log("  - Response Body Length:", responseText.length);
-    console.log(
-      "  - Response Body:",
-      responseText.substring(0, 500) + (responseText.length > 500 ? "..." : "")
-    );
-
-    if (!response.ok) {
-      let errorData;
-      try {
-        errorData = JSON.parse(responseText);
-        console.log("🔍 WordPress APIエラー詳細:");
-        console.log("  - Error Code:", errorData.code);
-        console.log("  - Error Message:", errorData.message);
-        console.log("  - Error Data:", JSON.stringify(errorData.data, null, 2));
-
-        // 特定のエラーコードに対する詳細情報
-        if (errorData.code === "rest_cannot_create") {
-          console.log(
-            "💡 権限エラー: ユーザーにメディアアップロード権限がありません"
-          );
-        } else if (errorData.code === "rest_forbidden") {
-          console.log(
-            "💡 アクセス拒否: IP制限またはセキュリティプラグインの可能性"
-          );
-        } else if (errorData.code === "rest_upload_user_quota_exceeded") {
-          console.log("💡 容量制限: ユーザーのアップロード容量を超過");
-        }
-      } catch (parseError) {
-        console.log("⚠️ レスポンスのJSONパースに失敗:", parseError.message);
-        errorData = { message: "Upload failed", raw_response: responseText };
-      }
-
-      console.error("❌ WordPress画像アップロード失敗:", errorData);
-      return res.status(response.status).json({
-        error:
-          process.env.NODE_ENV === "production"
-            ? "Failed to upload image"
-            : errorData.message || "Upload failed",
-        debug_info:
-          process.env.NODE_ENV !== "production"
-            ? {
-                wp_error_code: errorData.code,
-                wp_error_message: errorData.message,
-                wp_status: response.status,
-                wp_status_text: response.statusText,
-              }
-            : undefined,
-      });
-    }
-
-    // 成功時の処理
-    let data;
-    try {
-      data = JSON.parse(responseText);
-      console.log("✅ WordPress画像アップロード成功:");
-      console.log("  - Media ID:", data.id);
-      console.log("  - Source URL:", data.source_url);
-      console.log("  - Title:", data.title?.rendered);
-      console.log("  - Alt Text:", data.alt_text);
-    } catch (parseError) {
-      console.error("⚠️ 成功レスポンスのJSONパースに失敗:", parseError.message);
-      return res.status(500).json({ error: "Invalid response from WordPress" });
-    }
-
-    console.log("🔍 === WordPress画像アップロード デバッグ終了 ===");
-    res.json({ id: data.id, source_url: data.source_url });
-  } catch (error) {
-    console.error("❌ WordPress画像アップロードエラー:", error.message);
-    console.error("❌ エラースタック:", error.stack);
-    res.status(500).json({
-      error:
-        process.env.NODE_ENV === "production"
-          ? "Internal server error"
-          : error.message,
-    });
-  }
-});
-
-// WordPress プロキシエンドポイント（記事作成）
-app.post("/api/wordpress/create-post", async (req, res) => {
-  const { title, content, status, slug } = req.body;
-
-  if (!title || !content) {
-    return res.status(400).json({ error: "title and content are required" });
-  }
-
-  // WordPress設定を環境変数から取得
-  const wpBaseUrl = process.env.WP_BASE_URL || process.env.VITE_WP_BASE_URL;
-  const wpUsername = process.env.WP_USERNAME || process.env.VITE_WP_USERNAME;
-  const wpAppPassword =
-    process.env.WP_APP_PASSWORD || process.env.VITE_WP_APP_PASSWORD;
-
-  if (!wpBaseUrl || !wpUsername || !wpAppPassword) {
-    console.error("❌ WordPress設定が不完全です");
-    return res
-      .status(500)
-      .json({ error: "WordPress configuration is incomplete" });
-  }
-
-  try {
-    const postData = {
-      title,
-      content,
-      status: status || "draft",
-    };
-
-    if (slug) postData.slug = slug;
-
-    // WordPress REST APIに投稿
-    const apiUrl = wpBaseUrl.replace(/\/+$/, "") + "/wp-json/wp/v2/posts";
-    const authHeader =
-      "Basic " +
-      Buffer.from(`${wpUsername}:${wpAppPassword}`).toString("base64");
-
-    const response = await fetch(apiUrl, {
-      method: "POST",
-      headers: {
-        Authorization: authHeader,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(postData),
-    });
-
-    if (!response.ok) {
-      const errorData = await response
-        .json()
-        .catch(() => ({ message: "Post creation failed" }));
-      console.error("❌ WordPress記事作成失敗:", errorData);
-      return res.status(response.status).json({
-        error:
-          process.env.NODE_ENV === "production"
-            ? "Failed to create post"
-            : errorData.message || "Post creation failed",
-      });
-    }
-
-    const data = await response.json();
-    console.log("✅ WordPress記事作成成功:", data.id);
-    res.json({ link: data.link, id: data.id });
-  } catch (error) {
-    console.error("❌ WordPress記事作成エラー:", error.message);
-    res.status(500).json({
-      error:
-        process.env.NODE_ENV === "production"
-          ? "Internal server error"
-          : error.message,
-    });
-  }
-});
+// CMS連携（WordPress / Payload）はクライアント別ルートに集約
+// 旧 /api/wordpress/* も互換のため server/api/cms.js 側で維持している
+cmsRoutes.register(app);
 
 // グローバルエラーハンドラー
 app.use((err, req, res, next) => {
@@ -1298,6 +1030,15 @@ process.on("unhandledRejection", (reason, promise) => {
 });
 
 // サーバー起動
+// 起動時にクライアント設定の漏れを洗い出す（落とさず警告のみ）
+require("./clients/store")
+  .validateAll()
+  .then(({ count, problems }) => {
+    console.log(`👥 クライアント設定: ${count}件`);
+    problems.forEach((msg) => console.warn(`⚠️ ${msg}`));
+  })
+  .catch((err) => console.warn(`⚠️ クライアント設定を読み込めません: ${err.message}`));
+
 const server = app.listen(PORT, "0.0.0.0", () => {
   console.log(`
 🎉 スクレイピングサーバー起動完了！

@@ -11,24 +11,26 @@
  * - VITE_COMPANY_MEDIA_URL: 自社メディアサイトURL（例：media.yourcompany.com）
  */
 
-// 環境変数から自社URLパターンを取得
-const COMPANY_NOTE_URL = import.meta.env.VITE_COMPANY_NOTE_URL || "";
-const COMPANY_MEDIA_URL = import.meta.env.VITE_COMPANY_MEDIA_URL || "";
+// 選択中クライアントの自社URLパターンを都度取得する。
+// モジュール読み込み時に固定すると、クライアント切り替えに追従できない。
+import { getBrand } from "./clientContext";
 
 /**
  * 自社noteのURLかどうかを判定
  */
 function isCompanyNoteUrl(url: string): boolean {
-  if (!COMPANY_NOTE_URL) return false;
-  return url.includes(COMPANY_NOTE_URL);
+  const noteUrl = getBrand().noteUrl;
+  if (!noteUrl) return false;
+  return url.includes(noteUrl);
 }
 
 /**
  * 自社メディアのURLかどうかを判定
  */
 function isCompanyMediaUrl(url: string): boolean {
-  if (!COMPANY_MEDIA_URL) return false;
-  return url.includes(COMPANY_MEDIA_URL);
+  const mediaUrl = getBrand().mediaUrl;
+  if (!mediaUrl) return false;
+  return url.includes(mediaUrl);
 }
 
 /**
@@ -76,15 +78,17 @@ export function selectPrioritizedUrl(urls: string[]): string {
     return "";
   }
 
-  // 自社noteを最優先（環境変数が設定されている場合のみ）
-  if (COMPANY_NOTE_URL) {
-    const noteUrl = urls.find((url) => url.includes(COMPANY_NOTE_URL));
+  const brand = getBrand();
+
+  // 自社noteを最優先（設定されている場合のみ）
+  if (brand.noteUrl) {
+    const noteUrl = urls.find((url) => url.includes(brand.noteUrl));
     if (noteUrl) return noteUrl;
   }
 
-  // フォールバック: 自社メディア（環境変数が設定されている場合のみ）
-  if (COMPANY_MEDIA_URL) {
-    const mediaUrl = urls.find((url) => url.includes(COMPANY_MEDIA_URL));
+  // フォールバック: 自社メディア（設定されている場合のみ）
+  if (brand.mediaUrl) {
+    const mediaUrl = urls.find((url) => url.includes(brand.mediaUrl));
     if (mediaUrl) return mediaUrl;
   }
 

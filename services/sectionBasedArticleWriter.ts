@@ -1,3 +1,4 @@
+import { getBrand } from './clientContext';
 // セクション単位での記事生成サービス
 // 各見出しを個別に生成し、文字数を確実にコントロール
 
@@ -215,7 +216,7 @@ async function generateSection(
     : '';
   
   // サービス訴求セクションか判定（自社サービス名を環境変数から取得）
-  const serviceName = import.meta.env.VITE_SERVICE_NAME || '当社サービス';
+  const serviceName = getBrand().serviceName;
   const isServiceSection = section.heading.includes(serviceName) || section.heading.includes('サービス訴求');
 
   let prompt = '';
