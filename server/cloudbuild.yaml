@@ -28,9 +28,12 @@ steps:
       - '--region=asia-northeast1'
       - '--platform=managed'
       - '--no-allow-unauthenticated'
-      - '--memory=1Gi'
-      - '--timeout=300'
-      - '--set-env-vars=CLIENT_STORE=file,CLIENTS_FILE=/secrets/clients.json,NODE_ENV=production'
+      - '--ingress=internal-and-cloud-load-balancing'
+      - '--concurrency=1'
+      - '--memory=2Gi'
+      - '--timeout=3600'
+      - '--max-instances=3'
+      - '--set-env-vars=CLIENT_STORE=file,CLIENTS_FILE=/secrets/clients.json,NODE_ENV=production,SEO_FRONTEND_URL=https://seo.lishinc.com,IMAGE_AGENT_URL=https://imager.lishinc.com'
       - '--set-secrets=INTERNAL_API_KEY=INTERNAL_API_KEY:latest,GEMINI_API_KEY=GEMINI_API_KEY:latest,GOOGLE_API_KEY=GOOGLE_API_KEY:latest,GOOGLE_SEARCH_ENGINE_ID=GOOGLE_SEARCH_ENGINE_ID:latest,SLACK_WEBHOOK_URL=SLACK_WEBHOOK_URL:latest,/secrets/clients.json=CLIENTS_JSON:latest'
 
 images:

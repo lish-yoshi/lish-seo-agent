@@ -1,3 +1,7 @@
+# BACKEND_URL は本番では空文字。LB の URL マップで各サブドメインの
+# /api/* が backend-server にルーティングされるため、
+# フロントは自オリジンの /api を叩く（同一オリジン＝CORS 不要、
+# IAP セッションクッキーも有効）。絶対URLを入れてはいけない。
 steps:
   - name: gcr.io/cloud-builders/docker
     entrypoint: bash

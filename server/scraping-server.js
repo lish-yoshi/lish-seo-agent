@@ -820,11 +820,16 @@ app.get("/", (req, res) => {
 app.get("/api/health", async (req, res) => {
   let clientCount = -1;
   let clientIds = [];
+  let enabledCount = 0;
+  let enabledClientIds = [];
   let clientStoreError = null;
   try {
     const clients = await store.listClients();
     clientCount = clients.length;
     clientIds = clients.map((c) => c.id);
+    const enabled = clients.filter((c) => c.enabled);
+    enabledCount = enabled.length;
+    enabledClientIds = enabled.map((c) => c.id);
   } catch (err) {
     clientStoreError = err.message;
   }
@@ -834,6 +839,8 @@ app.get("/api/health", async (req, res) => {
     clientStore: process.env.CLIENT_STORE || "file",
     clientCount,
     clientIds,
+    enabledCount,
+    enabledClientIds,
     clientStoreError,
     browserReady: browser != null,
   });
