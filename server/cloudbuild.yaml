@@ -14,6 +14,10 @@ steps:
       - 'asia-northeast1-docker.pkg.dev/$PROJECT_ID/seo-app/backend-server:latest'
 
   # 3. Cloud Run デプロイ
+  #
+  # clients.json は Secret Manager からファイルマウントで供給する。
+  # マウント先を /secrets/ 配下にしているのは、/ 直下にマウントすると
+  # 親ディレクトリがボリューム置換されコンテナが起動しなくなるため。
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
     entrypoint: gcloud
     args:
@@ -26,8 +30,8 @@ steps:
       - '--no-allow-unauthenticated'
       - '--memory=1Gi'
       - '--timeout=300'
-      - '--set-env-vars=CLIENT_STORE=supabase,NODE_ENV=production'
-      - '--set-secrets=SUPABASE_URL=SUPABASE_URL:latest,SUPABASE_SERVICE_ROLE_KEY=SUPABASE_SERVICE_ROLE_KEY:latest,INTERNAL_API_KEY=INTERNAL_API_KEY:latest,GEMINI_API_KEY=GEMINI_API_KEY:latest,GOOGLE_API_KEY=GOOGLE_API_KEY:latest,GOOGLE_SEARCH_ENGINE_ID=GOOGLE_SEARCH_ENGINE_ID:latest,SLACK_WEBHOOK_URL=SLACK_WEBHOOK_URL:latest'
+      - '--set-env-vars=CLIENT_STORE=file,CLIENTS_FILE=/secrets/clients.json,NODE_ENV=production'
+      - '--set-secrets=INTERNAL_API_KEY=INTERNAL_API_KEY:latest,GEMINI_API_KEY=GEMINI_API_KEY:latest,GOOGLE_API_KEY=GOOGLE_API_KEY:latest,GOOGLE_SEARCH_ENGINE_ID=GOOGLE_SEARCH_ENGINE_ID:latest,SLACK_WEBHOOK_URL=SLACK_WEBHOOK_URL:latest,/secrets/clients.json=CLIENTS_JSON:latest'
 
 images:
   - 'asia-northeast1-docker.pkg.dev/$PROJECT_ID/seo-app/backend-server:latest'

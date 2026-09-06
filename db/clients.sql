@@ -1,3 +1,5 @@
+-- Phase 3 で DB 化する場合の参考。現行は Secret Manager マウント（CLIENT_STORE=file）。
+--
 -- クライアント設定テーブル（CLIENT_STORE=supabase のとき使用）
 --
 -- 社数が少ないうちは clients.json で足りる。
