@@ -38,6 +38,7 @@ const FALLBACK_BRAND: ClientBrand = {
 };
 
 function backendUrl(): string {
+  if (import.meta.env.DEV) return "";
   return (
     import.meta.env.VITE_API_URL?.replace("/api", "") ||
     import.meta.env.VITE_BACKEND_URL ||
@@ -49,7 +50,9 @@ const STORAGE_KEY = "seo-agent:selected-client";
 
 let activeId: string | null = null;
 let activeConfig: ClientConfig | null = null;
+let cachedClients: ClientConfig[] = [];
 const listeners = new Set<(c: ClientConfig | null) => void>();
+const warningListeners = new Set<(msg: string) => void>();
 
 /** 選択中のクライアントIDを取得（未選択ならlocalStorageから復元） */
 export function getActiveClientId(): string | null {
@@ -64,36 +67,61 @@ export function getActiveClientId(): string | null {
 
 /** 利用可能なクライアント一覧を取得 */
 export async function fetchClients(): Promise<ClientConfig[]> {
-  const res = await fetch(`${backendUrl()}/api/clients`);
+  const res = await fetch(`${backendUrl()}/api/clients`, {
+    headers: clientHeaders(),
+  });
   if (!res.ok) throw new Error("クライアント一覧を取得できませんでした");
   const data = await res.json();
-  return data.clients ?? [];
+  cachedClients = data.clients ?? [];
+  return cachedClients;
 }
 
 /**
  * クライアントを切り替える。
- * 設定を読み込み終えるまで記事生成を走らせないこと。
+ * 選択は即座に確定し、詳細設定の取得失敗は警告に留める。
  */
 export async function setActiveClient(clientId: string): Promise<ClientConfig> {
-  const res = await fetch(
-    `${backendUrl()}/api/client-config?clientId=${encodeURIComponent(clientId)}`
-  );
-  if (!res.ok) {
-    throw new Error(`クライアント設定を読み込めませんでした: ${clientId}`);
-  }
-
-  const config: ClientConfig = await res.json();
+  // 1. 選択を即座に確定
   activeId = clientId;
-  activeConfig = config;
-
   try {
     localStorage.setItem(STORAGE_KEY, clientId);
   } catch {
     // プライベートブラウジング等では保存できないが動作には支障ない
   }
 
-  listeners.forEach((fn) => fn(config));
-  return config;
+  // 2. キャッシュ済み一覧から暫定設定をセット
+  const cached = cachedClients.find((c) => c.id === clientId);
+  activeConfig = cached ?? {
+    id: clientId,
+    label: clientId,
+    brand: FALLBACK_BRAND,
+    cms: { type: "wordpress", baseUrl: "", defaultPostStatus: "draft", configured: false },
+    hasSpreadsheet: false,
+    hasCompanyData: false,
+  };
+  listeners.forEach((fn) => fn(activeConfig));
+
+  // 3. 詳細設定を非同期で取得し、成功したら上書き
+  try {
+    const res = await fetch(
+      `${backendUrl()}/api/client-config?clientId=${encodeURIComponent(clientId)}`,
+      { headers: clientHeaders() },
+    );
+    if (!res.ok) {
+      throw new Error(`クライアント設定を読み込めませんでした: ${clientId}`);
+    }
+    const config: ClientConfig = await res.json();
+    // 取得中に別のクライアントに切り替えられていたら上書きしない
+    if (activeId === clientId) {
+      activeConfig = config;
+      listeners.forEach((fn) => fn(config));
+    }
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    warningListeners.forEach((fn) => fn(msg));
+  }
+
+  return activeConfig!;
 }
 
 /** 読み込み済みの設定を同期的に取得。未読み込みなら null。 */
@@ -113,14 +141,24 @@ export function getBrand(): ClientBrand {
 
 /** APIリクエストに付ける共通ヘッダー */
 export function clientHeaders(): Record<string, string> {
+  const headers: Record<string, string> = {};
+  const apiKey = import.meta.env.VITE_INTERNAL_API_KEY;
+  if (apiKey) headers["x-api-key"] = apiKey;
   const id = getActiveClientId();
-  return id ? { "x-client-id": id } : {};
+  if (id) headers["x-client-id"] = id;
+  return headers;
 }
 
 /** 設定切り替えの購読（画面側の再描画用） */
 export function onClientChange(fn: (c: ClientConfig | null) => void): () => void {
   listeners.add(fn);
   return () => listeners.delete(fn);
+}
+
+/** 接続警告の購読 */
+export function onClientWarning(fn: (msg: string) => void): () => void {
+  warningListeners.add(fn);
+  return () => warningListeners.delete(fn);
 }
 
 /** 起動時の復元。App のマウント時に一度呼ぶ。 */

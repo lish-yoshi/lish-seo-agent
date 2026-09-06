@@ -81,7 +81,7 @@ app.use(
     },
     credentials: true,
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "x-api-key", "Authorization"],
+    allowedHeaders: ["Content-Type", "x-api-key", "x-client-id", "Authorization"],
     exposedHeaders: ["Content-Range", "X-Content-Range"],
     maxAge: 86400, // 24時間キャッシュ
   })

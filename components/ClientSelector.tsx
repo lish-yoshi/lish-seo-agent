@@ -4,6 +4,7 @@ import {
   setActiveClient,
   getActiveClient,
   onClientChange,
+  onClientWarning,
   type ClientConfig,
 } from "../services/clientContext";
 
@@ -24,7 +25,9 @@ const ClientSelector: React.FC = () => {
     fetchClients()
       .then(setClients)
       .catch((e) => setError(e.message));
-    return onClientChange(setActive);
+    const unsubChange = onClientChange(setActive);
+    const unsubWarning = onClientWarning(setError);
+    return () => { unsubChange(); unsubWarning(); };
   }, []);
 
   const handleChange = async (e: React.ChangeEvent<HTMLSelectElement>) => {
@@ -32,13 +35,8 @@ const ClientSelector: React.FC = () => {
     if (!id) return;
     setBusy(true);
     setError("");
-    try {
-      await setActiveClient(id);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : String(err));
-    } finally {
-      setBusy(false);
-    }
+    await setActiveClient(id);
+    setBusy(false);
   };
 
   return (
