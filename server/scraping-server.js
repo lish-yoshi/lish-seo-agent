@@ -12,10 +12,18 @@ const puppeteer =
     : require("puppeteer"); // 開発環境：Chromium付き
 const fetch = require("node-fetch");
 const path = require("path");
-const chromium = require("@sparticuz/chromium");
+
+// @sparticuz/chromium は Docker 環境では除外されるため遅延読み込み
+let chromium = null;
+try {
+  chromium = require("@sparticuz/chromium");
+} catch {
+  // モジュール不在（Cloud Run 等）— PUPPETEER_EXECUTABLE_PATH で代替
+}
 require("dotenv").config({ path: path.join(__dirname, "..", ".env") });
 
 const cmsRoutes = require("./api/cms");
+const store = require("./clients/store");
 
 const app = express();
 const PORT = process.env.PORT || 3001; // Renderでは環境変数PORTを使用
@@ -249,10 +257,37 @@ async function initBrowser() {
   }
 
   if (!browser) {
-    const isProduction = process.env.NODE_ENV === "production";
+    const execPath = process.env.PUPPETEER_EXECUTABLE_PATH;
 
-    if (isProduction) {
-      // 本番環境：@sparticuz/chromium を使用
+    if (execPath) {
+      // (a) PUPPETEER_EXECUTABLE_PATH が設定されている場合（Cloud Run 等）
+      console.log(`🚀 Puppeteer を起動中... (executablePath: ${execPath})`);
+      try {
+        browser = await puppeteer.launch({
+          executablePath: execPath,
+          headless: true,
+          ignoreHTTPSErrors: true,
+          protocolTimeout: 60000,
+          args: [
+            "--no-sandbox",
+            "--disable-setuid-sandbox",
+            "--disable-dev-shm-usage",
+            "--disable-accelerated-2d-canvas",
+            "--no-first-run",
+            "--no-zygote",
+            "--disable-gpu",
+          ],
+        });
+        console.log("✅ ブラウザ起動完了 (system executable)");
+        const browserVersion = await browser.version();
+        console.log(`✅ 使用中のブラウザ: ${browserVersion}`);
+        logMemoryUsage("ブラウザ起動後");
+      } catch (error) {
+        console.error("❌ Puppeteer起動エラー (system executable):", error);
+        return null;
+      }
+    } else if (chromium) {
+      // (b) @sparticuz/chromium が読み込めた場合（Render/Vercel 等）
       console.log("🚀 Puppeteer (with @sparticuz/chromium) を起動中...");
       try {
         browser = await puppeteer.launch({
@@ -261,7 +296,7 @@ async function initBrowser() {
           executablePath: await chromium.executablePath(),
           headless: chromium.headless,
           ignoreHTTPSErrors: true,
-          protocolTimeout: 60000, // 60秒のタイムアウト
+          protocolTimeout: 60000,
         });
         console.log("✅ @sparticuz/chromium ブラウザ起動完了");
         const browserVersion = await browser.version();
@@ -272,13 +307,13 @@ async function initBrowser() {
         return null;
       }
     } else {
-      // 開発環境：通常のpuppeteer を使用
+      // (c) いずれも無い場合（ローカル開発、Puppeteer 同梱版）
       console.log("🚀 Puppeteer (開発環境) を起動中...");
       try {
         browser = await puppeteer.launch({
           headless: true,
           ignoreHTTPSErrors: true,
-          protocolTimeout: 60000, // 60秒のタイムアウト
+          protocolTimeout: 60000,
           args: [
             "--no-sandbox",
             "--disable-setuid-sandbox",
@@ -764,11 +799,43 @@ app.post("/api/scrape-multiple", async (req, res) => {
   }
 });
 
+// ルート（稼働確認）
+app.get("/", (req, res) => {
+  res.json({
+    message: "Scraping Server is running",
+    version: "1.0.0",
+    endpoints: {
+      health: "/api/health",
+      scrape: "POST /api/scrape",
+      scrapeMultiple: "POST /api/scrape-multiple",
+      googleSearch: "POST /api/google-search",
+      clients: "GET /api/clients",
+      cmsVerify: "GET /api/cms/verify",
+    },
+    timestamp: new Date().toISOString(),
+  });
+});
+
 // ヘルスチェック
-app.get("/api/health", (req, res) => {
+app.get("/api/health", async (req, res) => {
+  let clientCount = -1;
+  let clientIds = [];
+  let clientStoreError = null;
+  try {
+    const clients = await store.listClients();
+    clientCount = clients.length;
+    clientIds = clients.map((c) => c.id);
+  } catch (err) {
+    clientStoreError = err.message;
+  }
   res.json({
     status: "ok",
     message: "スクレイピングサーバーは正常に動作しています",
+    clientStore: process.env.CLIENT_STORE || "file",
+    clientCount,
+    clientIds,
+    clientStoreError,
+    browserReady: browser != null,
   });
 });
 
@@ -1031,13 +1098,17 @@ process.on("unhandledRejection", (reason, promise) => {
 
 // サーバー起動
 // 起動時にクライアント設定の漏れを洗い出す（落とさず警告のみ）
-require("./clients/store")
+store
   .validateAll()
   .then(({ count, problems }) => {
-    console.log(`👥 クライアント設定: ${count}件`);
+    if (count === 0) {
+      console.error("❌ 有効なクライアントが0件です。clients の設定を確認してください");
+    } else {
+      console.log(`👥 クライアント設定: ${count}件`);
+    }
     problems.forEach((msg) => console.warn(`⚠️ ${msg}`));
   })
-  .catch((err) => console.warn(`⚠️ クライアント設定を読み込めません: ${err.message}`));
+  .catch((err) => console.error(`❌ クライアント設定を読み込めません: ${err.message}`));
 
 const server = app.listen(PORT, "0.0.0.0", () => {
   console.log(`

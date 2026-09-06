@@ -1,4 +1,4 @@
-# Cloud Run用 Dockerfile (scraping-server-full.js対応)
+# Cloud Run用 Dockerfile
 FROM node:18-slim
 
 # Puppeteer用の依存関係をインストール
@@ -51,4 +51,4 @@ RUN chmod 755 /usr/bin/google-chrome-stable
 USER pptruser
 
 # アプリケーションを起動
-CMD ["node", "scraping-server-full.js"]
+CMD ["node", "scraping-server.js"]
