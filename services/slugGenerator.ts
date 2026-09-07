@@ -18,7 +18,7 @@ export async function generateSlug(keyword: string): Promise<string> {
 
     // Gemini 2.5 Flash-Lite（軽量・高速・低コスト）を使用
     const model = genAI.getGenerativeModel({
-      model: "gemini-2.5-flash-lite",
+      model: "gemini-3.5-flash-lite",
       generationConfig: {
         temperature: 0.3, // 安定した翻訳のため低めに設定
         maxOutputTokens: 50, // slugは短いので50で十分

@@ -117,7 +117,7 @@ export async function checkArticleV3(request: CheckRequest): Promise<CheckResult
   
   try {
     const model = genAI.getGenerativeModel({
-      model: "gemini-2.5-pro",
+      model: "gemini-3.7-flash",
       generationConfig: {
         temperature: 0.3, // より正確な評価のため低めに設定
         maxOutputTokens: 16384, // 4096から16384に拡大（テスト結果より）
@@ -222,7 +222,7 @@ export async function compareWithCompetitors(
   console.log('📊 競合比較分析開始');
   
   const model = genAI.getGenerativeModel({
-    model: "gemini-2.5-pro",
+    model: "gemini-3.7-flash",
     generationConfig: {
       temperature: 0.4,
       maxOutputTokens: 2048,
@@ -268,7 +268,7 @@ export async function getSuggestionForSection(
   context: string
 ): Promise<string> {
   const model = genAI.getGenerativeModel({
-    model: "gemini-2.5-pro",
+    model: "gemini-3.7-flash",
     generationConfig: {
       temperature: 0.5,
       maxOutputTokens: 512,
@@ -394,7 +394,7 @@ export async function testJsonGeneration() {
       }
 
       const model = genAI.getGenerativeModel({
-        model: "gemini-2.5-pro",
+        model: "gemini-3.7-flash",
         generationConfig
       });
 

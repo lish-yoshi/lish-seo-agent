@@ -316,7 +316,7 @@ async function checkWithGeminiAPI(
   temperature?: number
 ): Promise<Violation[]> {
   const model = genAI.getGenerativeModel({ 
-    model: 'gemini-2.5-flash',
+    model: 'gemini-3.6-flash',
     generationConfig: {
       temperature: temperature || 0.3,
       maxOutputTokens: 8192,
@@ -756,7 +756,7 @@ async function applyAIFixesForSection(
   temperature: number
 ): Promise<string> {
   const model = genAI.getGenerativeModel({
-    model: 'gemini-2.5-flash',
+    model: 'gemini-3.6-flash',
     generationConfig: {
       temperature,
       maxOutputTokens: 8192, // セクション単位なので8192で十分
@@ -835,7 +835,7 @@ async function applyAIFixes(
   temperature: number
 ): Promise<string> {
   const model = genAI.getGenerativeModel({
-    model: 'gemini-2.5-flash',
+    model: 'gemini-3.6-flash',
     generationConfig: {
       temperature,
       maxOutputTokens: 16384,

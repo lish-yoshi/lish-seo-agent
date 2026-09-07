@@ -298,7 +298,7 @@ JSONのみ出力、説明不要。
 
   try {
     const model = genAI.getGenerativeModel({
-      model: 'gemini-2.5-flash',
+      model: 'gemini-3.6-flash',
       generationConfig: {
         temperature: 0.1, // 事実抽出なので低温度
         maxOutputTokens: 1024,
@@ -351,7 +351,7 @@ ${highTrustFacts.join('\n')}
 
   try {
     const model = genAI.getGenerativeModel({
-      model: 'gemini-2.5-flash',
+      model: 'gemini-3.6-flash',
       generationConfig: {
         temperature: 0.3,
         maxOutputTokens: 256,

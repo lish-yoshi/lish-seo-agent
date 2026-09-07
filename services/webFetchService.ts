@@ -72,7 +72,7 @@ export async function fetchAndAnalyzePage(
 
     // Gemini APIを使ってWebFetch
     const model = genAI.getGenerativeModel({ 
-      model: "gemini-2.5-flash",
+      model: "gemini-3.6-flash",
       generationConfig: {
         temperature: 0.1,
         maxOutputTokens: 8192,

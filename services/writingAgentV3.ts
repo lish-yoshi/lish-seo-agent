@@ -784,7 +784,7 @@ ${linkList}
 
     // モデル設定
     const modelConfig: any = {
-      model: "gemini-2.5-pro",
+      model: "gemini-3.7-flash",
       generationConfig: {
         temperature: 0.7,
         maxOutputTokens: 16384, // 20,000文字まで対応（8192→16384に増加）
@@ -935,7 +935,7 @@ export async function generateSectionV3(
 
   try {
     const modelConfig: any = {
-      model: "gemini-2.5-pro",
+      model: "gemini-3.7-flash",
       generationConfig: {
         temperature: 0.7,
         maxOutputTokens: 8192, // セクション分割時も増加（4096→8192）

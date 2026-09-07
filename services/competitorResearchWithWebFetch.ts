@@ -152,7 +152,7 @@ JSON形式で返してください（必ず15件以上）：
     if (false) {
       console.log("📡 Using Gemini search (URLs may not be exact)...");
       const model = genAI.getGenerativeModel({
-        model: "gemini-2.5-flash",
+        model: "gemini-3.6-flash",
         tools: [{ googleSearch: {} }],
         generationConfig: {
           temperature: 0.1,
@@ -448,7 +448,7 @@ JSONで返してください：
 
     // Geminiモデルを初期化
     const topicsModel = genAI.getGenerativeModel({
-      model: "gemini-2.5-flash",
+      model: "gemini-3.6-flash",
       generationConfig: {
         temperature: 0.7,
         maxOutputTokens: 2048,

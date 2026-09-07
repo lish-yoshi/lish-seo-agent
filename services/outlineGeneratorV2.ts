@@ -746,7 +746,7 @@ ${primaryDataContext}
 
   try {
     const model = genAI.getGenerativeModel({
-      model: "gemini-2.5-pro",
+      model: "gemini-3.7-flash",
       generationConfig: {
         temperature: 0.5, // バランス重視（創造性と正確性）
         maxOutputTokens: 16000, // トークン数を増やして詳細な構成を生成可能に

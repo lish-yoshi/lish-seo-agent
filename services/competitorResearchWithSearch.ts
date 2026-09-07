@@ -92,7 +92,7 @@ Return ONLY valid JSON in this exact format (no comments):
 
     // Gemini 2.0 Flash with Google Search grounding
     const model = genAI.getGenerativeModel({
-      model: "gemini-2.5-flash",
+      model: "gemini-3.6-flash",
       generationConfig: {
         temperature: 1.0, // Recommended for search grounding
         maxOutputTokens: 8192,

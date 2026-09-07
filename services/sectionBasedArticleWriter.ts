@@ -353,7 +353,7 @@ ${context.frequencyWords.slice(0, 10).map(w => w.word).join(', ')}
 
   try {
     const model = genAI.getGenerativeModel({
-      model: "gemini-2.5-flash",
+      model: "gemini-3.6-flash",
       generationConfig: {
         temperature: 0.7,
         maxOutputTokens: Math.ceil(targetCharCount * 2), // 余裕を持たせる
@@ -440,7 +440,7 @@ ${existingHtml}
 
   try {
     const model = genAI.getGenerativeModel({
-      model: "gemini-2.5-flash",
+      model: "gemini-3.6-flash",
       generationConfig: {
         temperature: 0.7,
         maxOutputTokens: Math.ceil(targetCharCount * 2),
@@ -489,7 +489,7 @@ HTMLタグのみを直接出力してください。
 
   try {
     const model = genAI.getGenerativeModel({
-      model: "gemini-2.5-flash",
+      model: "gemini-3.6-flash",
       generationConfig: {
         temperature: 0.8,
         maxOutputTokens: 1000,
@@ -536,7 +536,7 @@ HTMLタグのみを直接出力してください。
 
   try {
     const model = genAI.getGenerativeModel({
-      model: "gemini-2.5-flash",
+      model: "gemini-3.6-flash",
       generationConfig: {
         temperature: 0.7,
         maxOutputTokens: 2000,

@@ -250,7 +250,7 @@ ${regulationText}
     console.log(`目標文字数: ${targetCharCount}文字 → 設定トークン数: ${requiredTokens}`);
     
     const model = genAI.getGenerativeModel({ 
-      model: "gemini-2.5-flash",
+      model: "gemini-3.6-flash",
       generationConfig: {
         temperature: 0.5, // 創造性と正確性のバランスを改善
         maxOutputTokens: requiredTokens,
@@ -458,7 +458,7 @@ HTMLタグのみを直接出力してください。
   
   try {
     const model = genAI.getGenerativeModel({ 
-      model: "gemini-2.5-flash",
+      model: "gemini-3.6-flash",
       generationConfig: {
         temperature: 0.3, // 推敲なので低めの温度
         maxOutputTokens: Math.ceil(targetCharCount * 3), // HTMLタグを考慮して3倍に増加
@@ -637,7 +637,7 @@ HTMLタグのみを直接出力してください。
     );
     
     const model = genAI.getGenerativeModel({ 
-      model: "gemini-2.5-flash",
+      model: "gemini-3.6-flash",
       generationConfig: {
         temperature: 0.5, // 創造性と正確性のバランスを改善
         maxOutputTokens: requiredTokens,
@@ -751,7 +751,7 @@ ${frequencyWordInstruction}
 
   try {
     const model = genAI.getGenerativeModel({ 
-      model: "gemini-2.5-flash",
+      model: "gemini-3.6-flash",
       generationConfig: {
         temperature: 0.5, // 創造性と正確性のバランスを改善
         maxOutputTokens: Math.max(4096, Math.ceil(targetWordCount * 3)), // 動的に調整、最小4096

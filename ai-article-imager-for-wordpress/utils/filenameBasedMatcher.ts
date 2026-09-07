@@ -319,7 +319,7 @@ async function calculateSemanticSimilarity(
 ): Promise<number> {
   try {
     const genAI = new GoogleGenAI({ apiKey });
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+    const model = genAI.getGenerativeModel({ model: "gemini-3.5-flash-lite" });
 
     const prompt = `
 以下のファイル名とH2見出しの意味的な関連度を0-1のスコアで評価してください。

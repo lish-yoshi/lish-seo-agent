@@ -125,7 +125,7 @@ HTMLのpタグで出力してください。
 
   try {
     const model = genAI.getGenerativeModel({
-      model: "gemini-2.5-flash",
+      model: "gemini-3.6-flash",
       generationConfig: {
         temperature: 0.5, // 創造性と正確性のバランスを改善
         maxOutputTokens: 1000,
@@ -311,7 +311,7 @@ HTML形式で出力してください（h2, h3, p, ul, li タグを使用）。
 
     try {
       const model = genAI.getGenerativeModel({
-        model: "gemini-2.5-flash",
+        model: "gemini-3.6-flash",
         generationConfig: {
           temperature: 0.5, // 創造性と正確性のバランスを改善
           maxOutputTokens: Math.ceil(sectionCharCount * 2),
@@ -369,7 +369,7 @@ HTML形式で出力してください。
 
   try {
     const model = genAI.getGenerativeModel({
-      model: "gemini-2.5-flash",
+      model: "gemini-3.6-flash",
       generationConfig: {
         temperature: 0.5, // 創造性と正確性のバランスを改善
         maxOutputTokens: 1000,

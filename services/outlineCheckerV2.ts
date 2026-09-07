@@ -575,7 +575,7 @@ ${h3Shortage ? `
     const topP = attemptNumber === 0 ? 0.95 : 0.85;
     
     const model = genAI.getGenerativeModel({
-      model: "gemini-2.5-pro",
+      model: "gemini-3.7-flash",
       generationConfig: {
         temperature, // 修正回数に応じて正確性を高める
         topP,        // 修正回数に応じて確実性を高める

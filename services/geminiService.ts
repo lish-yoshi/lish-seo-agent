@@ -358,7 +358,7 @@ ${JSON.stringify(responseSchema, null, 2)}
   let jsonToParse: string | undefined;
   try {
     const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash",
+      model: "gemini-3.6-flash",
       contents: prompt,
       config: {
         tools: [{ googleSearch: {} }],

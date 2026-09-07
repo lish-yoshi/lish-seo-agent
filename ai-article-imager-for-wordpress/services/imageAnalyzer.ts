@@ -46,7 +46,7 @@ export async function analyzeImageFeatures(imageName: string, imageB64: string):
 }`;
 
     const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash',
+      model: 'gemini-3.6-flash',
       contents: {
         parts: [
           {
@@ -223,7 +223,7 @@ export async function selectBestImageForH2(
 
   try {
     const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash',
+      model: 'gemini-3.6-flash',
       contents: prompt,
     });
     

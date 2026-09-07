@@ -57,7 +57,7 @@ export async function runQualityCheck(
     
     // Gemini APIの設定（低温度で一貫性を保つ）
     const model = genAI.getGenerativeModel({ 
-      model: 'gemini-2.5-flash',
+      model: 'gemini-3.6-flash',
       generationConfig: {
         temperature: 0.1,  // さらに低温度で厳密に
         maxOutputTokens: 8192,
