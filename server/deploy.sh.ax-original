@@ -1,4 +1,12 @@
 #!/bin/bash
+# =========================================================
+# DEPRECATED / DO NOT USE
+# AX社配布時点の旧デプロイスクリプト。参照用に残しているのみ。
+# --allow-unauthenticated を含むため、LISH構成では絶対に実行しない。
+# 正しいデプロイは server/cloudbuild.yaml
+# (--ingress=internal-and-cloud-load-balancing / --no-allow-unauthenticated)
+# を用いること。
+# =========================================================
 
 # GCP Cloud Runデプロイスクリプト
 set -e
