@@ -356,13 +356,14 @@ ${context.frequencyWords.slice(0, 10).map(w => w.word).join(', ')}
       model: "gemini-3.6-flash",
       generationConfig: {
         temperature: 0.7,
-        maxOutputTokens: Math.ceil(targetCharCount * 2), // 余裕を持たせる
-      }
+        maxOutputTokens: Math.ceil(targetCharCount * 3) + 4000,
+        thinkingConfig: { thinkingLevel: "low" },
+      } as any,
     });
 
     const result = await model.generateContent(prompt);
     const response = result.response.text();
-    
+
     // JSONを抽出
     const jsonMatch = response.match(/\{[\s\S]*\}/);
     if (!jsonMatch) {
@@ -443,8 +444,9 @@ ${existingHtml}
       model: "gemini-3.6-flash",
       generationConfig: {
         temperature: 0.7,
-        maxOutputTokens: Math.ceil(targetCharCount * 2),
-      }
+        maxOutputTokens: Math.ceil(targetCharCount * 3) + 4000,
+        thinkingConfig: { thinkingLevel: "low" },
+      } as any,
     });
 
     const result = await model.generateContent(prompt);
@@ -492,8 +494,9 @@ HTMLタグのみを直接出力してください。
       model: "gemini-3.6-flash",
       generationConfig: {
         temperature: 0.8,
-        maxOutputTokens: 1000,
-      }
+        maxOutputTokens: 4000,
+        thinkingConfig: { thinkingLevel: "low" },
+      } as any,
     });
 
     const result = await model.generateContent(prompt);
@@ -539,8 +542,9 @@ HTMLタグのみを直接出力してください。
       model: "gemini-3.6-flash",
       generationConfig: {
         temperature: 0.7,
-        maxOutputTokens: 2000,
-      }
+        maxOutputTokens: 5000,
+        thinkingConfig: { thinkingLevel: "low" },
+      } as any,
     });
 
     const result = await model.generateContent(prompt);
