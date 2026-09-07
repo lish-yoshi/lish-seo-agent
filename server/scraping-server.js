@@ -163,12 +163,20 @@ const authenticate = (req, res, next) => {
 app.use("/api", authenticate);
 app.use("/api", apiLimiter);
 
-// Google Search API設定
+// 検索API設定（Serper API 優先、未設定なら Google Custom Search にフォールバック）
+const SERPER_API_KEY = process.env.SERPER_API_KEY;
 const GOOGLE_API_KEY =
   process.env.GOOGLE_API_KEY || process.env.VITE_GOOGLE_API_KEY;
 const SEARCH_ENGINE_ID =
   process.env.GOOGLE_SEARCH_ENGINE_ID ||
   process.env.VITE_GOOGLE_SEARCH_ENGINE_ID;
+const USE_SERPER = !!SERPER_API_KEY;
+const USE_GOOGLE_SEARCH = !!(GOOGLE_API_KEY && SEARCH_ENGINE_ID);
+
+/** URL からホスト名を安全に抽出する（Serper レスポンスの displayLink 補完用） */
+function safeHostname(urlStr) {
+  try { return new URL(urlStr).hostname; } catch { return ""; }
+}
 
 // ブラウザインスタンスを保持（高速化のため）
 let browser = null;
@@ -943,7 +951,7 @@ app.post("/api/force-restart-browser", async (req, res) => {
   });
 });
 
-// Google Search APIエンドポイント
+// 検索APIエンドポイント（Serper 優先、未設定なら Google Custom Search）
 app.post("/api/google-search", async (req, res) => {
   const { query, numResults = 20 } = req.body;
 
@@ -951,62 +959,128 @@ app.post("/api/google-search", async (req, res) => {
     return res.status(400).json({ error: "Query is required" });
   }
 
-  if (!GOOGLE_API_KEY || !SEARCH_ENGINE_ID) {
-    console.error("Google Search API keys not configured");
-    return res.status(500).json({ error: "Google Search API not configured" });
+  if (!USE_SERPER && !USE_GOOGLE_SEARCH) {
+    console.error("検索APIが未設定です（SERPER_API_KEY または GOOGLE_API_KEY + GOOGLE_SEARCH_ENGINE_ID が必要）");
+    return res.status(500).json({
+      error: "検索APIが設定されていません。SERPER_API_KEY または GOOGLE_API_KEY + GOOGLE_SEARCH_ENGINE_ID を設定してください。",
+    });
   }
 
   try {
-    console.log(`🔍 Google Search for: ${query}`);
-    const results = [];
+    if (USE_SERPER) {
+      // --- Serper API ---
+      console.log(`🔍 Serper Search for: ${query}`);
+      const results = [];
 
-    // 1回目のリクエスト（1-10位）
-    // 日本語・日本地域の検索結果を優先
-    const firstUrl = `https://www.googleapis.com/customsearch/v1?key=${GOOGLE_API_KEY}&cx=${SEARCH_ENGINE_ID}&q=${encodeURIComponent(
-      query
-    )}&num=10&lr=lang_ja&gl=jp`;
-    const firstResponse = await fetch(firstUrl);
-
-    if (!firstResponse.ok) {
-      const errorData = await firstResponse.json();
-      console.error("Google Search API error:", errorData);
-      return res.status(firstResponse.status).json({
-        error:
-          process.env.NODE_ENV === "production"
-            ? "Search service error"
-            : errorData.error?.message || "Google Search API error",
+      const firstResponse = await fetch("https://google.serper.dev/search", {
+        method: "POST",
+        headers: {
+          "X-API-KEY": SERPER_API_KEY,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ q: query, num: 10, gl: "jp", hl: "ja" }),
       });
-    }
 
-    const firstData = await firstResponse.json();
-    if (firstData.items) {
-      results.push(...firstData.items);
-    }
+      if (!firstResponse.ok) {
+        const errorData = await firstResponse.json().catch(() => ({}));
+        console.error("Serper API error:", errorData);
+        return res.status(firstResponse.status).json({
+          error:
+            process.env.NODE_ENV === "production"
+              ? "Search service error"
+              : errorData.message || "Serper API error",
+        });
+      }
 
-    // 20件必要な場合は2回目のリクエスト（11-20位）
-    if (numResults > 10 && firstData.items?.length === 10) {
-      const secondUrl = `https://www.googleapis.com/customsearch/v1?key=${GOOGLE_API_KEY}&cx=${SEARCH_ENGINE_ID}&q=${encodeURIComponent(
-        query
-      )}&num=10&start=11&lr=lang_ja&gl=jp`;
-      const secondResponse = await fetch(secondUrl);
+      const firstData = await firstResponse.json();
+      if (firstData.organic) {
+        results.push(
+          ...firstData.organic.map((item) => ({
+            title: item.title,
+            link: item.link,
+            snippet: item.snippet,
+            displayLink: safeHostname(item.link),
+          }))
+        );
+      }
 
-      if (secondResponse.ok) {
-        const secondData = await secondResponse.json();
-        if (secondData.items) {
-          results.push(...secondData.items);
+      if (numResults > 10 && results.length >= 10) {
+        const secondResponse = await fetch("https://google.serper.dev/search", {
+          method: "POST",
+          headers: {
+            "X-API-KEY": SERPER_API_KEY,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ q: query, num: 10, page: 2, gl: "jp", hl: "ja" }),
+        });
+
+        if (secondResponse.ok) {
+          const secondData = await secondResponse.json();
+          if (secondData.organic) {
+            results.push(
+              ...secondData.organic.map((item) => ({
+                title: item.title,
+                link: item.link,
+                snippet: item.snippet,
+                displayLink: safeHostname(item.link),
+              }))
+            );
+          }
         }
       }
-    }
 
-    console.log(`✅ Google Search completed: ${results.length} results`);
-    res.json({ success: true, results });
+      console.log(`✅ Serper Search completed: ${results.length} results`);
+      res.json({ success: true, results });
+    } else {
+      // --- Google Custom Search API ---
+      console.log(`🔍 Google Custom Search for: ${query}`);
+      const results = [];
+
+      const firstUrl = `https://www.googleapis.com/customsearch/v1?key=${GOOGLE_API_KEY}&cx=${SEARCH_ENGINE_ID}&q=${encodeURIComponent(
+        query
+      )}&num=10&lr=lang_ja&gl=jp`;
+      const firstResponse = await fetch(firstUrl);
+
+      if (!firstResponse.ok) {
+        const errorData = await firstResponse.json();
+        console.error("Google Search API error:", errorData);
+        return res.status(firstResponse.status).json({
+          error:
+            process.env.NODE_ENV === "production"
+              ? "Search service error"
+              : errorData.error?.message || "Google Search API error",
+        });
+      }
+
+      const firstData = await firstResponse.json();
+      if (firstData.items) {
+        results.push(...firstData.items);
+      }
+
+      if (numResults > 10 && firstData.items?.length === 10) {
+        const secondUrl = `https://www.googleapis.com/customsearch/v1?key=${GOOGLE_API_KEY}&cx=${SEARCH_ENGINE_ID}&q=${encodeURIComponent(
+          query
+        )}&num=10&start=11&lr=lang_ja&gl=jp`;
+        const secondResponse = await fetch(secondUrl);
+
+        if (secondResponse.ok) {
+          const secondData = await secondResponse.json();
+          if (secondData.items) {
+            results.push(...secondData.items);
+          }
+        }
+      }
+
+      console.log(`✅ Google Custom Search completed: ${results.length} results`);
+      res.json({ success: true, results });
+    }
   } catch (error) {
-    console.error("Google Search error:", error.message);
+    console.error("Search error:", error.message);
     res.status(500).json({
       error:
         process.env.NODE_ENV === "production"
           ? "Internal server error"
-          : "Failed to perform Google search",
+          : "Failed to perform search",
     });
   }
 });
@@ -1136,16 +1210,13 @@ const server = app.listen(PORT, "0.0.0.0", () => {
    - GET /api/health (ヘルスチェック)
   `);
 
-  // Google Search API設定の確認（APIキーはマスク）
-  if (GOOGLE_API_KEY && SEARCH_ENGINE_ID) {
-    console.log("✅ Google Custom Search API: 設定済み");
-    console.log("   - API Key: ****");
-    console.log(`   - Search Engine ID: ${SEARCH_ENGINE_ID}`);
+  // 検索プロバイダの確認
+  if (USE_SERPER) {
+    console.log("🔍 Search provider: serper");
+  } else if (USE_GOOGLE_SEARCH) {
+    console.log("🔍 Search provider: google-custom-search");
   } else {
-    console.log("⚠️  Google Custom Search API: 未設定");
-    if (!GOOGLE_API_KEY) console.log("   - GOOGLE_API_KEY が見つかりません");
-    if (!SEARCH_ENGINE_ID)
-      console.log("   - GOOGLE_SEARCH_ENGINE_ID が見つかりません");
+    console.log("🔍 Search provider: none (競合調査は動作しません)");
   }
 
   // 認証設定の確認
