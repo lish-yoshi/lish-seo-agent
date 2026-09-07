@@ -3,25 +3,52 @@
 # フロントは自オリジンの /api を叩く（同一オリジン＝CORS 不要、
 # IAP セッションクッキーも有効）。絶対URLを入れてはいけない。
 steps:
+  # 1. ビルド
   - name: gcr.io/cloud-builders/docker
     entrypoint: bash
     args:
       - -c
-      - "docker build --build-arg VITE_GEMINI_API_KEY=$$GEMINI_API_KEY --build-arg VITE_BACKEND_URL=$$BACKEND_URL --build-arg VITE_INTERNAL_API_KEY=$$INTERNAL_API_KEY --build-arg VITE_MAIN_APP_URL=$$MAIN_APP_URL --build-arg VITE_BASE_PATH=/imager/ -t asia-northeast1-docker.pkg.dev/$PROJECT_ID/seo-app/ai-article-imager:latest ."
+      # Secret 経由: GEMINI_API_KEY / INTERNAL_API_KEY（秘密値）
+      # リテラル: BACKEND_URL=""（同一オリジン）/ MAIN_APP_URL=/（同一オリジン）
+      #   BASE_PATH=/imager/（パスプレフィックス）
+      - >-
+        docker build
+        --build-arg VITE_GEMINI_API_KEY=$$GEMINI_API_KEY
+        --build-arg VITE_BACKEND_URL=
+        --build-arg VITE_INTERNAL_API_KEY=$$INTERNAL_API_KEY
+        --build-arg VITE_MAIN_APP_URL=/
+        --build-arg VITE_BASE_PATH=/imager/
+        -t asia-northeast1-docker.pkg.dev/$PROJECT_ID/seo-app/ai-article-imager:latest .
     secretEnv:
       - GEMINI_API_KEY
-      - BACKEND_URL
       - INTERNAL_API_KEY
-      - MAIN_APP_URL
+
+  # 2. プッシュ
+  - name: gcr.io/cloud-builders/docker
+    args:
+      - push
+      - asia-northeast1-docker.pkg.dev/$PROJECT_ID/seo-app/ai-article-imager:latest
+
+  # 3. Cloud Run デプロイ（nginx 静的配信、Secret 不要）
+  - name: gcr.io/google.com/cloudsdktool/cloud-sdk
+    entrypoint: gcloud
+    args:
+      - run
+      - deploy
+      - ai-article-imager
+      - '--image=asia-northeast1-docker.pkg.dev/$PROJECT_ID/seo-app/ai-article-imager:latest'
+      - '--region=asia-northeast1'
+      - '--platform=managed'
+      - '--no-allow-unauthenticated'
+      - '--ingress=internal-and-cloud-load-balancing'
+      - '--memory=512Mi'
+      - '--cpu=1'
+
 images:
   - asia-northeast1-docker.pkg.dev/$PROJECT_ID/seo-app/ai-article-imager:latest
 availableSecrets:
   secretManager:
     - versionName: projects/$PROJECT_ID/secrets/GEMINI_API_KEY/versions/latest
       env: GEMINI_API_KEY
-    - versionName: projects/$PROJECT_ID/secrets/BACKEND_URL/versions/latest
-      env: BACKEND_URL
     - versionName: projects/$PROJECT_ID/secrets/INTERNAL_API_KEY/versions/latest
       env: INTERNAL_API_KEY
-    - versionName: projects/$PROJECT_ID/secrets/MAIN_APP_URL/versions/latest
-      env: MAIN_APP_URL

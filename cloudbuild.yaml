@@ -3,37 +3,60 @@
 # フロントは自オリジンの /api を叩く（同一オリジン＝CORS 不要、
 # IAP セッションクッキーも有効）。絶対URLを入れてはいけない。
 steps:
+  # 1. ビルド
   - name: gcr.io/cloud-builders/docker
     entrypoint: bash
     args:
       - -c
-      - "docker build --build-arg VITE_GEMINI_API_KEY=$$GEMINI_API_KEY --build-arg VITE_BACKEND_URL=$$BACKEND_URL --build-arg VITE_INTERNAL_API_KEY=$$INTERNAL_API_KEY --build-arg VITE_IMAGE_GEN_URL=$$IMAGE_GEN_URL --build-arg VITE_OPENAI_API_KEY=$$OPENAI_API_KEY --build-arg VITE_SLACK_WEBHOOK_URL=$$SLACK_WEBHOOK_URL --build-arg VITE_ENABLE_SLACK_NOTIFICATIONS=true --build-arg VITE_SUPABASE_URL=$$SUPABASE_URL --build-arg VITE_SUPABASE_ANON_KEY=$$SUPABASE_ANON_KEY -t asia-northeast1-docker.pkg.dev/$PROJECT_ID/seo-app/seo-frontend:latest ."
+      # Secret 経由: GEMINI_API_KEY / INTERNAL_API_KEY / OPENAI_API_KEY（秘密値）
+      # リテラル: BACKEND_URL=""（同一オリジン）/ IMAGE_GEN_URL=/imager（パス）
+      #   SLACK_WEBHOOK_URL=""（無効化）/ SUPABASE_URL=""・ANON_KEY=""（未使用）
+      #   ENABLE_SLACK_NOTIFICATIONS=false（本番ではバック経由に移行予定）
+      - >-
+        docker build
+        --build-arg VITE_GEMINI_API_KEY=$$GEMINI_API_KEY
+        --build-arg VITE_BACKEND_URL=
+        --build-arg VITE_INTERNAL_API_KEY=$$INTERNAL_API_KEY
+        --build-arg VITE_IMAGE_GEN_URL=/imager
+        --build-arg VITE_OPENAI_API_KEY=$$OPENAI_API_KEY
+        --build-arg VITE_SLACK_WEBHOOK_URL=
+        --build-arg VITE_ENABLE_SLACK_NOTIFICATIONS=false
+        --build-arg VITE_SUPABASE_URL=
+        --build-arg VITE_SUPABASE_ANON_KEY=
+        -t asia-northeast1-docker.pkg.dev/$PROJECT_ID/seo-app/seo-frontend:latest .
     secretEnv:
       - GEMINI_API_KEY
-      - BACKEND_URL
       - INTERNAL_API_KEY
-      - IMAGE_GEN_URL
       - OPENAI_API_KEY
-      - SLACK_WEBHOOK_URL
-      - SUPABASE_URL
-      - SUPABASE_ANON_KEY
+
+  # 2. プッシュ
+  - name: gcr.io/cloud-builders/docker
+    args:
+      - push
+      - asia-northeast1-docker.pkg.dev/$PROJECT_ID/seo-app/seo-frontend:latest
+
+  # 3. Cloud Run デプロイ（nginx 静的配信、Secret 不要）
+  - name: gcr.io/google.com/cloudsdktool/cloud-sdk
+    entrypoint: gcloud
+    args:
+      - run
+      - deploy
+      - seo-frontend
+      - '--image=asia-northeast1-docker.pkg.dev/$PROJECT_ID/seo-app/seo-frontend:latest'
+      - '--region=asia-northeast1'
+      - '--platform=managed'
+      - '--no-allow-unauthenticated'
+      - '--ingress=internal-and-cloud-load-balancing'
+      - '--memory=512Mi'
+      - '--cpu=1'
+
 images:
   - asia-northeast1-docker.pkg.dev/$PROJECT_ID/seo-app/seo-frontend:latest
 availableSecrets:
   secretManager:
     - versionName: projects/$PROJECT_ID/secrets/GEMINI_API_KEY/versions/latest
       env: GEMINI_API_KEY
-    - versionName: projects/$PROJECT_ID/secrets/BACKEND_URL/versions/latest
-      env: BACKEND_URL
     - versionName: projects/$PROJECT_ID/secrets/INTERNAL_API_KEY/versions/latest
       env: INTERNAL_API_KEY
-    - versionName: projects/$PROJECT_ID/secrets/IMAGE_GEN_URL/versions/latest
-      env: IMAGE_GEN_URL
     - versionName: projects/$PROJECT_ID/secrets/OPENAI_API_KEY/versions/latest
       env: OPENAI_API_KEY
-    - versionName: projects/$PROJECT_ID/secrets/SLACK_WEBHOOK_URL/versions/latest
-      env: SLACK_WEBHOOK_URL
-    - versionName: projects/$PROJECT_ID/secrets/SUPABASE_URL/versions/latest
-      env: SUPABASE_URL
-    - versionName: projects/$PROJECT_ID/secrets/SUPABASE_ANON_KEY/versions/latest
-      env: SUPABASE_ANON_KEY
