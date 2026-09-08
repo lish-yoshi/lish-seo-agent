@@ -555,6 +555,16 @@ HTMLタグのみを直接出力してください。
   }
 }
 
+// 見出しタグの閉じ山括弧欠落を修復する（generateSection のモデル出力由来）
+// 正常な <h2> は '>' が続き、<h2 class="x"> は空白が続くためマッチしない（副作用なし）
+function fixHeadingTags(html: string, label: string): string {
+  const broken = (html.match(/<h[1-6](?![\s>])/g) || []).length;
+  if (broken > 0) {
+    console.log(`[HEADING FIX] ${label}: ${broken}件の見出しタグを修復`);
+  }
+  return html.replace(/<(h[1-6])(?![\s>])/g, '<$1>');
+}
+
 // メイン: セクション単位で記事を生成
 export async function generateArticleBySection(
   outline: SeoOutline | any,  // Ver.2の構成も受け付ける
@@ -673,7 +683,10 @@ export async function generateArticleBySection(
     ...sectionResults.map(r => r.html),
     conclusion
   ].join('\n\n');
-  
+
+  // モデルがJSON内HTMLで見出しタグの ">" を落とすことがあるため修復
+  htmlContent = fixHeadingTags(htmlContent, '結合直後');
+
   // 5. タイトルとメタディスクリプションを生成
   const title = `【2025年最新】${keyword}完全ガイド｜${allSections[0].heading}から${allSections[allSections.length - 1].heading}まで徹底解説`;
   const metaDescription = `${keyword}について、${allSections.map(s => s.heading).slice(0, 3).join('、')}など、初心者にもわかりやすく解説。2025年最新情報を網羅した完全ガイドです。`;
@@ -725,6 +738,7 @@ export async function generateArticleBySection(
       
       // 修正後のコンテンツを使用
       htmlContent = fixResult.fixedContent;
+      htmlContent = fixHeadingTags(htmlContent, '校閲後');
       
       // プレーンテキストを再生成
       const fixedPlainText = htmlContent
