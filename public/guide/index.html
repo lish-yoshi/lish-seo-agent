@@ -1,0 +1,660 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>LISH SEOエージェント 利用ガイド</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&family=Zen+Old+Mincho:wght@600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#FBFBF9;
+  --paper-2:#F2F3F0;
+  --ink:#1B2A38;
+  --ink-soft:#54646F;
+  --rule:#DBE0E0;
+  --rule-soft:#E9ECEA;
+  --ok:#1F6B54;
+  --ok-bg:#E8F1ED;
+  --warn:#8A5A08;
+  --warn-bg:#F6EFE1;
+  --off:#7A3B3B;
+  --off-bg:#F4E9E9;
+  --link:#255C86;
+  --code-bg:#EEF0EE;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --paper:#12181D;
+    --paper-2:#1A2228;
+    --ink:#E4E9EA;
+    --ink-soft:#9DAAB1;
+    --rule:#2C3840;
+    --rule-soft:#232D34;
+    --ok:#6FC3A5;
+    --ok-bg:#16302A;
+    --warn:#D9A85A;
+    --warn-bg:#302719;
+    --off:#D89191;
+    --off-bg:#2E1E1E;
+    --link:#7FB4DC;
+    --code-bg:#1E272D;
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#12181D;
+  --paper-2:#1A2228;
+  --ink:#E4E9EA;
+  --ink-soft:#9DAAB1;
+  --rule:#2C3840;
+  --rule-soft:#232D34;
+  --ok:#6FC3A5;
+  --ok-bg:#16302A;
+  --warn:#D9A85A;
+  --warn-bg:#302719;
+  --off:#D89191;
+  --off-bg:#2E1E1E;
+  --link:#7FB4DC;
+  --code-bg:#1E272D;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+@media (prefers-reduced-motion: reduce){html{scroll-behavior:auto}}
+body{
+  margin:0;
+  background:var(--paper);
+  color:var(--ink);
+  font-family:"Noto Sans JP", -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Yu Gothic", sans-serif;
+  font-size:15.5px;
+  line-height:1.85;
+  -webkit-font-smoothing:antialiased;
+}
+
+/* ---------- masthead ---------- */
+.masthead{
+  border-bottom:1px solid var(--rule);
+  padding:44px 24px 34px;
+}
+.masthead-inner{max-width:1180px;margin:0 auto}
+.doc-kind{
+  font-size:12.5px;
+  color:var(--ink-soft);
+  letter-spacing:.04em;
+  margin:0 0 10px;
+}
+.masthead h1{
+  font-family:"Zen Old Mincho", serif;
+  font-weight:700;
+  font-size:clamp(27px,4.6vw,40px);
+  line-height:1.35;
+  margin:0 0 26px;
+  letter-spacing:.01em;
+}
+.doorway{
+  display:flex;
+  flex-wrap:wrap;
+  gap:14px 34px;
+  align-items:flex-end;
+  padding:20px 22px;
+  background:var(--paper-2);
+  border-left:3px solid var(--link);
+}
+.doorway .lead{font-size:12.5px;color:var(--ink-soft);margin:0 0 4px}
+.doorway a.url{
+  font-family:"Zen Old Mincho", serif;
+  font-size:clamp(19px,2.6vw,25px);
+  font-weight:600;
+  color:var(--link);
+  text-decoration:none;
+  border-bottom:1px solid currentColor;
+  word-break:break-all;
+}
+.doorway a.url:hover{opacity:.75}
+.doorway .who{font-size:14px;margin:0;max-width:34ch}
+
+/* ---------- layout ---------- */
+.wrap{
+  max-width:1180px;
+  margin:0 auto;
+  padding:0 24px 90px;
+  display:grid;
+  grid-template-columns:232px minmax(0,1fr);
+  gap:56px;
+  align-items:start;
+}
+@media (max-width:900px){
+  .wrap{grid-template-columns:minmax(0,1fr);gap:0}
+}
+
+/* ---------- nav ---------- */
+.nav{
+  position:sticky;
+  top:28px;
+  padding-top:40px;
+  font-size:13.5px;
+}
+.nav ol{list-style:none;margin:0;padding:0}
+.nav li{margin:0 0 2px}
+.nav a{
+  display:block;
+  padding:5px 10px 5px 12px;
+  color:var(--ink-soft);
+  text-decoration:none;
+  border-left:2px solid transparent;
+  line-height:1.5;
+}
+.nav a:hover{color:var(--ink)}
+.nav a.on{color:var(--ink);border-left-color:var(--link);font-weight:500;background:var(--rule-soft)}
+.nav .num{color:var(--ink-soft);font-size:12px;margin-right:7px}
+@media (max-width:900px){
+  .nav{position:static;padding:20px 0 0}
+  .nav details{border:1px solid var(--rule);background:var(--paper-2)}
+  .nav summary{padding:12px 14px;cursor:pointer;font-weight:500}
+  .nav ol{padding:0 8px 10px}
+}
+.nav-desktop-title{
+  display:block;
+  font-size:11.5px;
+  color:var(--ink-soft);
+  padding:0 0 10px 12px;
+  border-bottom:1px solid var(--rule-soft);
+  margin-bottom:10px;
+}
+@media (max-width:900px){.nav-desktop-title{display:none}}
+
+/* ---------- content ---------- */
+main{padding-top:40px;max-width:74ch}
+section{
+  padding-top:26px;
+  margin-bottom:56px;
+  scroll-margin-top:24px;
+}
+section+section{border-top:1px solid var(--rule-soft)}
+h2{
+  font-family:"Zen Old Mincho", serif;
+  font-weight:700;
+  font-size:clamp(21px,3vw,26px);
+  line-height:1.45;
+  margin:0 0 6px;
+  display:flex;
+  gap:12px;
+  align-items:baseline;
+}
+h2 .n{
+  font-size:14px;
+  color:var(--ink-soft);
+  font-family:"Noto Sans JP",sans-serif;
+  font-weight:400;
+  flex:none;
+}
+h3{
+  font-size:16px;
+  font-weight:700;
+  margin:32px 0 8px;
+  line-height:1.6;
+}
+p{margin:0 0 15px}
+ul,ol{margin:0 0 16px;padding-left:1.35em}
+li{margin-bottom:7px}
+a{color:var(--link)}
+strong{font-weight:700}
+.lede{color:var(--ink-soft);margin:0 0 20px;font-size:14.5px}
+
+/* ---------- status tags ---------- */
+.tag{
+  display:inline-block;
+  font-size:12px;
+  line-height:1.5;
+  padding:2px 9px;
+  font-weight:500;
+  white-space:nowrap;
+}
+.tag-ok{background:var(--ok-bg);color:var(--ok)}
+.tag-warn{background:var(--warn-bg);color:var(--warn)}
+.tag-off{background:var(--off-bg);color:var(--off)}
+.status-row{margin:0 0 20px}
+
+/* ---------- notes ---------- */
+.note{
+  border-left:3px solid var(--warn);
+  background:var(--warn-bg);
+  padding:14px 18px;
+  margin:0 0 20px;
+  font-size:14px;
+}
+.note.stop{border-left-color:var(--off);background:var(--off-bg)}
+.note p:last-child{margin-bottom:0}
+.note .head{font-weight:700;margin:0 0 4px}
+
+/* ---------- steps ---------- */
+.steps{list-style:none;padding:0;margin:0 0 22px;counter-reset:s}
+.steps>li{
+  counter-increment:s;
+  position:relative;
+  padding:0 0 20px 42px;
+  margin:0;
+  border-left:1px solid var(--rule);
+}
+.steps>li:last-child{border-left-color:transparent;padding-bottom:0}
+.steps>li::before{
+  content:counter(s);
+  position:absolute;
+  left:-13px;
+  top:1px;
+  width:26px;height:26px;
+  background:var(--paper);
+  border:1px solid var(--rule);
+  border-radius:50%;
+  display:grid;place-items:center;
+  font-size:12.5px;
+  color:var(--ink-soft);
+  font-weight:500;
+}
+.steps .st{font-weight:700;display:block;margin-bottom:3px;line-height:1.6}
+.steps p{margin:0 0 8px;font-size:14.5px}
+
+/* ---------- tables ---------- */
+.tw{overflow-x:auto;margin:0 0 22px;border:1px solid var(--rule)}
+table{border-collapse:collapse;width:100%;font-size:13.5px;min-width:440px}
+th,td{padding:9px 12px;text-align:left;border-bottom:1px solid var(--rule-soft);vertical-align:top;line-height:1.65}
+th{background:var(--paper-2);font-weight:700;white-space:nowrap}
+tbody tr:last-child td{border-bottom:none}
+td code{font-size:12.5px}
+
+/* ---------- code ---------- */
+.code{position:relative;margin:0 0 20px}
+pre{
+  background:var(--code-bg);
+  padding:14px 16px;
+  margin:0;
+  overflow-x:auto;
+  font-size:13px;
+  line-height:1.75;
+  font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  border-left:2px solid var(--rule);
+}
+code{
+  font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  background:var(--code-bg);
+  padding:1px 5px;
+  font-size:13px;
+  word-break:break-all;
+}
+pre code{background:none;padding:0}
+.copy{
+  position:absolute;top:8px;right:8px;
+  font:inherit;font-size:12px;
+  padding:3px 10px;
+  background:var(--paper);
+  color:var(--ink-soft);
+  border:1px solid var(--rule);
+  cursor:pointer;
+}
+.copy:hover{color:var(--ink)}
+.copy:focus-visible,a:focus-visible,summary:focus-visible{outline:2px solid var(--link);outline-offset:2px}
+
+/* ---------- sheet diagram ---------- */
+.sheet{overflow-x:auto;margin:0 0 8px;border:1px solid var(--rule)}
+.sheet table{min-width:620px;font-size:13px}
+.sheet th{text-align:center;font-family:ui-monospace,monospace;background:var(--paper-2)}
+.sheet td{text-align:center}
+.sheet .mark{background:var(--ok-bg);color:var(--ok);font-weight:700}
+.sheet .auto{color:var(--ink-soft);font-style:normal;font-size:12px}
+.cap{font-size:12.5px;color:var(--ink-soft);margin:0 0 22px}
+
+footer{
+  border-top:1px solid var(--rule);
+  padding:26px 24px 50px;
+  font-size:13px;
+  color:var(--ink-soft);
+}
+footer .fi{max-width:1180px;margin:0 auto}
+footer p{margin:0 0 6px}
+</style>
+</head>
+<body>
+
+<header class="masthead">
+  <div class="masthead-inner">
+    <p class="doc-kind">LISH株式会社　社内ツール</p>
+    <h1>SEOエージェント 利用ガイド</h1>
+    <div class="doorway">
+      <div>
+        <p class="lead">記事を作る</p>
+        <a class="url" href="https://seo.lishinc.co.jp">seo.lishinc.co.jp</a>
+      </div>
+      <div>
+        <p class="lead">画像を作る</p>
+        <a class="url" href="https://imager.lishinc.co.jp">imager.lishinc.co.jp</a>
+      </div>
+      <p class="who">@lishinc.com のGoogleアカウントでログインすれば、そのまま使えます。</p>
+    </div>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <nav class="nav" aria-label="目次">
+    <details open>
+      <summary>目次</summary>
+      <span class="nav-desktop-title">目次</span>
+      <ol>
+        <li><a href="#s1"><span class="num">1</span>はじめに</a></li>
+        <li><a href="#s2"><span class="num">2</span>記事を作る</a></li>
+        <li><a href="#s3"><span class="num">3</span>できた記事を使う</a></li>
+        <li><a href="#s4"><span class="num">4</span>スプレッドシート連携</a></li>
+        <li><a href="#s5"><span class="num">5</span>管理者向けセットアップ</a></li>
+        <li><a href="#s6"><span class="num">6</span>困ったときは</a></li>
+        <li><a href="#s7"><span class="num">7</span>いまできないこと</a></li>
+      </ol>
+    </details>
+  </nav>
+
+  <main>
+
+  <!-- 1 -->
+  <section id="s1">
+    <h2><span class="n">1</span>はじめに</h2>
+    <p class="lede">キーワードを入れると、競合サイトを調べたうえで数千文字のSEO記事を書き上げるツールです。構成案づくり、本文執筆、校正、メタディスクリプションの生成までを通しで行います。画像は姉妹ツールの imager で作ります。</p>
+
+    <h3>入るには</h3>
+    <p><a href="https://seo.lishinc.co.jp">seo.lishinc.co.jp</a> を開くと、Googleのログイン画面が出ます。<strong>@lishinc.com のアカウント</strong>を選べば入れます。個人のGmailアカウントでは入れません。</p>
+    <p>ブラウザに複数のGoogleアカウントでログインしている場合、別のアカウントが選ばれて弾かれることがあります。その場合はシークレットウィンドウで開き直すか、アカウントを切り替えてください。</p>
+
+    <div class="note">
+      <p class="head">アクセスできないとき</p>
+      <p>@lishinc.com のアカウントで入れない場合は、吉田までご連絡ください。アクセス権の設定を確認します。</p>
+    </div>
+
+    <h3>使うときに知っておくこと</h3>
+    <ul>
+      <li>記事を1本作るのに<strong>10〜20分</strong>かかります。ブラウザのタブは閉じずに待ってください。</li>
+      <li>生成にはAIの利用料がかかります。テストで何本も回すのは避けてください。</li>
+      <li><code>https://</code> でアクセスしてください。<code>http://</code> ではつながりません。</li>
+    </ul>
+  </section>
+
+  <!-- 2 -->
+  <section id="s2">
+    <h2><span class="n">2</span>記事を作る</h2>
+    <p class="status-row"><span class="tag tag-ok">動作確認済み</span></p>
+    <p class="lede">基本の流れです。キーワードを1つ入れて、構成案を作り、執筆を始める。この3手で1本仕上がります。</p>
+
+    <ol class="steps">
+      <li>
+        <span class="st">キーワードを入力する</span>
+        <p>トップの入力欄に、記事にしたいキーワードを入れます。「ドライヘッドスパ 効果」のように、単語を空白で区切った検索キーワードの形で入れてください。</p>
+      </li>
+      <li>
+        <span class="st">構成案を作る</span>
+        <p>「構成案作成」を押すと、競合サイトを調べたうえで見出し構成を組み立てます。ここで数分かかります。</p>
+        <p>できた構成案は、見出しの追加・削除・並べ替えができます。内容に違和感があれば、この段階で直しておくと本文の質が上がります。</p>
+      </li>
+      <li>
+        <span class="st">執筆を始める</span>
+        <p>「執筆開始（Ver.1）」を押すと、セクションを順番に書いていきます。画面に進捗が出るので、そのまま待ってください。</p>
+        <p>途中で「構成案にエラーが見つかりました。自動修正を開始します」と出ることがありますが、そのまま進んで問題ありません。自動で直して続行します。</p>
+      </li>
+      <li>
+        <span class="st">できあがりを確認する</span>
+        <p>完了すると、プレビュー・HTMLコード・編集・画像生成のタブが出ます。文字数と目標文字数が表示されるので、目標に届いているか確認してください。</p>
+      </li>
+    </ol>
+
+    <div class="note">
+      <p class="head">完了表示のあと、3分ほど画面が止まります</p>
+      <p>「記事生成完了」と出てから結果が表示されるまで、くるくる回ったまま2〜3分待たされることがあります。故障ではないので、閉じずに待ってください。</p>
+    </div>
+
+    <h3>目安</h3>
+    <p>実際に「ドライヘッドスパ 効果」で作ったときは、7セクション・約4,900文字の記事ができました。競合サイトの調査は9件すべて成功しています。</p>
+  </section>
+
+  <!-- 3 -->
+  <section id="s3">
+    <h2><span class="n">3</span>できた記事を使う</h2>
+    <p class="status-row"><span class="tag tag-ok">動作確認済み</span></p>
+
+    <h3>取り出す</h3>
+    <div class="tw">
+      <table>
+        <thead><tr><th>やりたいこと</th><th>操作</th></tr></thead>
+        <tbody>
+          <tr><td>本文をテキストで保存</td><td>記事画面の「TXTダウンロード」</td></tr>
+          <tr><td>HTMLで保存</td><td>記事画面の「HTMLダウンロード」</td></tr>
+          <tr><td>HTMLをコピーしてCMSに貼る</td><td>記事画面のコピーボタン</td></tr>
+          <tr><td>構成案だけコピー</td><td>構成案画面のコピーボタン（Markdown形式）</td></tr>
+          <tr><td>校正・ファクトチェック結果をコピー</td><td>各チェック画面のコピーボタン</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>CSVでの書き出しには対応していません。</p>
+
+    <h3>画像を作る</h3>
+    <p>記事本文を <a href="https://imager.lishinc.co.jp">imager.lishinc.co.jp</a> に貼り付けると、見出しごとに画像を生成して差し込んでくれます。</p>
+    <div class="note">
+      <p class="head">記事と画像の受け渡しは手動です</p>
+      <p>2つのツールは独立しているので、記事を自動で imager に送る機能はありません。記事のHTMLをコピーして、imager に貼り付けてください。imager の画面表示は現在英語です。</p>
+    </div>
+  </section>
+
+  <!-- 4 -->
+  <section id="s4">
+    <h2><span class="n">4</span>スプレッドシート連携</h2>
+    <p class="status-row"><span class="tag tag-warn">セットアップが必要・未検証</span></p>
+    <p class="lede">キーワードをスプレッドシートに並べておき、印をつけた行だけをまとめて記事化する使い方ができます。書き上がるとタイトルやメタディスクリプションがシートに戻ってきます。</p>
+
+    <div class="note">
+      <p class="head">この章はまだ本番で動かせません</p>
+      <p>使うには第5章の管理者セットアップが必要で、そのセットアップはまだ実施していません。手順はツールの仕様書に基づいて書いていますが、実機での確認はこれからです。</p>
+    </div>
+
+    <h3>シートの形</h3>
+    <p>A列からG列まで、決まった並びで用意します。1行目は見出し行です。</p>
+    <div class="sheet">
+      <table>
+        <thead>
+          <tr><th>A</th><th>B</th><th>C</th><th>D</th><th>E</th><th>F</th><th>G</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>No.</td><td>KW</td><td>編集用URL</td><td>Slug</td><td>タイトル</td><td>公開用URL</td><td>メタディスク</td></tr>
+          <tr><td>1</td><td>ドライヘッドスパ 効果</td><td class="mark">1</td><td class="auto">自動</td><td class="auto">自動</td><td></td><td class="auto">自動</td></tr>
+          <tr><td>2</td><td>ドライヘッドスパ 頻度</td><td class="mark">1</td><td class="auto">自動</td><td class="auto">自動</td><td></td><td class="auto">自動</td></tr>
+          <tr><td>3</td><td>ドライヘッドスパ 料金</td><td></td><td></td><td></td><td></td><td></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="cap">C列に印のある1・2行目だけが処理されます。3行目は対象外です。</p>
+
+    <div class="tw">
+      <table>
+        <thead><tr><th>列</th><th>入れるもの</th><th>誰が入れるか</th></tr></thead>
+        <tbody>
+          <tr><td>A</td><td>連番</td><td>自分で入力</td></tr>
+          <tr><td>B</td><td>記事にしたいキーワード</td><td>自分で入力</td></tr>
+          <tr><td>C</td><td>処理したい行に <code>1</code> を入力（全角の <code>１</code> でも可）</td><td>自分で入力 → 処理後はCMSの編集用URLに上書きされます</td></tr>
+          <tr><td>D</td><td>記事のURL用文字列（スラッグ）</td><td>自動</td></tr>
+          <tr><td>E</td><td>記事タイトル</td><td>自動</td></tr>
+          <tr><td>F</td><td>公開後のURL</td><td>自分で入力。他の記事から内部リンクを張るために使われます</td></tr>
+          <tr><td>G</td><td>メタディスクリプション</td><td>自動</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>使う流れ</h3>
+    <ol class="steps">
+      <li>
+        <span class="st">シートを用意する</span>
+        <p>上の形でスプレッドシートを作り、B列にキーワード、記事にしたい行のC列に <code>1</code> を入れます。すでに公開済みの記事があれば、F列にそのURLを入れておくと内部リンクに使われます。</p>
+      </li>
+      <li>
+        <span class="st">シートを共有する</span>
+        <p>ツールがシートを読み書きできるよう、サービスアカウントに編集者として共有します。共有先のアドレスは管理者に確認してください。</p>
+      </li>
+      <li>
+        <span class="st">スプシモードをオンにする</span>
+        <p>キーワード入力画面の「スプシモード」トグルをオンにすると、印をつけたキーワードの一覧が表示されます。</p>
+      </li>
+      <li>
+        <span class="st">まとめて実行する</span>
+        <p>処理したいキーワードを選んで一括処理を始めます。記事が書き上がってCMSに投稿されると、C・D・E・G列が自動で埋まります。</p>
+      </li>
+    </ol>
+
+    <div class="note stop">
+      <p class="head">シートへの書き戻しにはCMS投稿が必要です</p>
+      <p>C〜G列が自動更新されるのは、記事がCMSに投稿されたときです。現在は投稿機能をすべて停止しているため、書き戻しまでは動きません（第7章）。キーワードの読み取りと記事生成までは、セットアップが済めば使えます。</p>
+    </div>
+  </section>
+
+  <!-- 5 -->
+  <section id="s5">
+    <h2><span class="n">5</span>管理者向けセットアップ</h2>
+    <p class="status-row"><span class="tag tag-warn">未実施</span></p>
+    <p class="lede">スプレッドシート連携を使えるようにするための作業です。GCPの操作を含むので、担当者の方は読み飛ばして構いません。</p>
+
+    <ol class="steps">
+      <li>
+        <span class="st">Google Sheets API を有効にする</span>
+        <p>GCPコンソールで、プロジェクト <code>lish-seo-agent</code> の Google Sheets API を有効化します。</p>
+      </li>
+      <li>
+        <span class="st">サービスアカウントを作る</span>
+        <p>名前は <code>sheets-api-access</code>。ロールの付与はスキップして構いません。</p>
+      </li>
+      <li>
+        <span class="st">JSONキーを発行する</span>
+        <p>作成したサービスアカウントのキーをJSON形式で発行し、ダウンロードします。このファイルは共有せず、手元で保管してください。</p>
+      </li>
+      <li>
+        <span class="st">Secret Manager に登録する</span>
+        <p>シークレット名は <code>GOOGLE_SERVICE_ACCOUNT_JSON</code>。値はJSONキーの中身です。</p>
+      </li>
+      <li>
+        <span class="st">backend-server に環境変数を渡す</span>
+        <p>シークレット参照で追加します。<strong>シークレット名と環境変数名が違う</strong>ので注意してください。</p>
+        <div class="tw">
+          <table>
+            <thead><tr><th>環境変数名</th><th>値</th></tr></thead>
+            <tbody>
+              <tr><td><code>GOOGLE_APPLICATION_CREDENTIALS_JSON</code></td><td>シークレット <code>GOOGLE_SERVICE_ACCOUNT_JSON</code> を参照</td></tr>
+              <tr><td><code>SPREADSHEET_ID</code></td><td>シートURLの <code>/d/</code> と <code>/edit</code> の間の文字列</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </li>
+      <li>
+        <span class="st">シートを共有する</span>
+        <p>対象のスプレッドシートを、次のアドレスに編集者として共有します。</p>
+        <div class="code">
+          <button class="copy" type="button">コピー</button>
+          <pre><code>sheets-api-access@lish-seo-agent.iam.gserviceaccount.com</code></pre>
+        </div>
+      </li>
+      <li>
+        <span class="st">クライアントごとのシートIDを設定する</span>
+        <p>マルチクライアント運用では、クライアント設定の <code>spreadsheetId</code> が優先され、<code>SPREADSHEET_ID</code> はその予備として使われます。現在はすべてのクライアントで <code>spreadsheetId</code> が空のため、使うクライアントに個別に設定が必要です。</p>
+      </li>
+    </ol>
+
+    <div class="note">
+      <p class="head">認証まわりの未確認事項</p>
+      <p>現在 backend-server には <code>GOOGLE_APPLICATION_CREDENTIALS_JSON</code> が渡っていません。手順4〜5を実施するか、Cloud Runのサービスアカウント自体にSheetsの権限を与えるかで動かす形になりますが、後者で動くかは未検証です。</p>
+    </div>
+  </section>
+
+  <!-- 6 -->
+  <section id="s6">
+    <h2><span class="n">6</span>困ったときは</h2>
+
+    <h3>ログイン画面から先に進めない</h3>
+    <p>@lishinc.com 以外のアカウントが選ばれている可能性があります。シークレットウィンドウで開き直してください。それでも入れない場合は吉田までご連絡ください。</p>
+
+    <h3>ページが開かない</h3>
+    <p>URLが <code>http://</code> になっていないか確認してください。<code>https://</code> でないとつながりません。</p>
+
+    <h3>「記事生成完了」から先に進まない</h3>
+    <p>完了表示のあと2〜3分、画面が止まったように見えることがあります。既知の挙動なので、そのまま待ってください。</p>
+
+    <h3>「投稿先が未選択です」と出る</h3>
+    <p>現在CMSへの投稿機能を停止しているため、この警告は出たままになります。記事の生成自体には影響しません。ダウンロードやコピーで取り出してください。</p>
+
+    <h3>「構成案にエラーが見つかりました」と出た</h3>
+    <p>自動で修正して続行します。そのまま待って問題ありません。</p>
+
+    <h3>タイトルが長すぎる／不自然につながっている</h3>
+    <p>見出しをそのままつなげたようなタイトルが出ることがあります。既知の問題として調査中です。タイトルは手直しして使ってください。</p>
+
+    <h3>それでも解決しないとき</h3>
+    <p>状況を伝えるときは、次の情報があると原因を追いやすくなります。</p>
+    <ul>
+      <li>入力したキーワード</li>
+      <li>どの操作で止まったか（構成案作成／執筆開始／保存）</li>
+      <li>画面に出ているエラー文言</li>
+      <li>可能であれば、ブラウザの検証ツール（F12）のConsoleタブに出ている赤い行</li>
+    </ul>
+  </section>
+
+  <!-- 7 -->
+  <section id="s7">
+    <h2><span class="n">7</span>いまできないこと</h2>
+    <p class="lede">現時点の制約です。順次解消していきます。</p>
+    <div class="tw">
+      <table>
+        <thead><tr><th>項目</th><th>状況</th></tr></thead>
+        <tbody>
+          <tr><td>CMSへの記事投稿</td><td><span class="tag tag-off">停止中</span> すべてのクライアントで無効です。記事は手動で取り出してください。</td></tr>
+          <tr><td>スプレッドシート連携</td><td><span class="tag tag-warn">要セットアップ</span> 機能は実装済みですが、設定が未完了です。</td></tr>
+          <tr><td>記事から画像生成への受け渡し</td><td><span class="tag tag-warn">手動</span> コピー＆ペーストで受け渡します。</td></tr>
+          <tr><td>imager の日本語表示</td><td><span class="tag tag-warn">英語のまま</span> 動作に支障はありません。</td></tr>
+          <tr><td>imager の画像と見出しの一致</td><td><span class="tag tag-warn">改善中</span> 見出しの内容と画像の結びつきが弱い場合があります。</td></tr>
+          <tr><td>CSV書き出し</td><td><span class="tag tag-off">なし</span> TXT・HTML・コピーで対応してください。</td></tr>
+          <tr><td>http:// でのアクセス</td><td><span class="tag tag-off">なし</span> https:// を使ってください。</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  </main>
+</div>
+
+<footer>
+  <div class="fi">
+    <p>LISH株式会社　社内向け資料</p>
+    <p>最終更新：2026年9月10日　／　内容の追加・修正は吉田まで</p>
+  </div>
+</footer>
+
+<script>
+document.querySelectorAll('.copy').forEach(function(btn){
+  btn.addEventListener('click', function(){
+    var pre = btn.parentElement.querySelector('code');
+    if(!pre) return;
+    navigator.clipboard.writeText(pre.textContent.trim()).then(function(){
+      var t = btn.textContent;
+      btn.textContent = 'コピーしました';
+      setTimeout(function(){ btn.textContent = t; }, 1600);
+    }).catch(function(){
+      btn.textContent = 'コピーできません';
+      setTimeout(function(){ btn.textContent = 'コピー'; }, 1600);
+    });
+  });
+});
+
+var links = Array.prototype.slice.call(document.querySelectorAll('.nav a'));
+var secs = links.map(function(a){ return document.querySelector(a.getAttribute('href')); });
+if ('IntersectionObserver' in window) {
+  var io = new IntersectionObserver(function(entries){
+    entries.forEach(function(e){
+      if(e.isIntersecting){
+        var i = secs.indexOf(e.target);
+        links.forEach(function(l,j){ l.classList.toggle('on', i===j); });
+      }
+    });
+  }, { rootMargin: '-10% 0px -75% 0px' });
+  secs.forEach(function(s){ if(s) io.observe(s); });
+}
+</script>
+</body>
+</html>
