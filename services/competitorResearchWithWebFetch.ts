@@ -515,13 +515,12 @@ JSONで返してください：
     console.error("❌ Error in competitor research:", error);
 
     // ネットワークエラーやサーバーエラーの場合はフォールバック
+    // ブラウザfetchのネットワーク断は TypeError("Failed to fetch") の完全一致で判定する。
+    // バックエンドの 502/503 は puppeteerScrapingService が投げる RENDER_SERVER_DOWN で判定する
+    // （"fetch"/"TypeError"/"503"/"502" の部分一致は Gemini API のエラーも誤診するため使わない）。
     const isNetworkError =
-      error?.message?.includes("fetch") ||
-      error?.message?.includes("Failed to fetch") ||
-      error?.message?.includes("TypeError") ||
+      (error instanceof TypeError && error.message === "Failed to fetch") ||
       error?.message?.includes("network") ||
-      error?.message?.includes("503") ||
-      error?.message?.includes("502") ||
       error?.message?.includes("CORS") ||
       error?.message?.includes("RENDER_SERVER_DOWN") ||
       error?.message?.includes("Puppeteerによるページ取得に失敗");

@@ -121,7 +121,8 @@ export async function checkArticleV3(request: CheckRequest): Promise<CheckResult
       generationConfig: {
         temperature: 0.3, // より正確な評価のため低めに設定
         maxOutputTokens: 16384, // 4096から16384に拡大（テスト結果より）
-        responseMimeType: "application/json"
+        responseMimeType: "application/json",
+        thinkingConfig: { thinkingLevel: "low" }
       }
     });
 
@@ -226,6 +227,7 @@ export async function compareWithCompetitors(
     generationConfig: {
       temperature: 0.4,
       maxOutputTokens: 2048,
+      thinkingConfig: { thinkingLevel: "low" },
     }
   });
 
@@ -272,6 +274,7 @@ export async function getSuggestionForSection(
     generationConfig: {
       temperature: 0.5,
       maxOutputTokens: 512,
+      thinkingConfig: { thinkingLevel: "low" },
     }
   });
 
@@ -387,6 +390,7 @@ export async function testJsonGeneration() {
       const generationConfig: any = {
         temperature: 0.3,
         maxOutputTokens: test.maxOutputTokens,
+        thinkingConfig: { thinkingLevel: "low" },
       };
 
       if (test.useJsonMimeType) {

@@ -210,7 +210,7 @@ export async function generateArticleV2(
   });
   
   // タイトルとメタディスクリプション
-  const title = `【2025年最新】${keyword}完全ガイド｜初心者にもわかりやすく解説`;
+  const title = `【${new Date().getFullYear()}年最新】${keyword}完全ガイド｜初心者にもわかりやすく解説`;
   const metaDescription = `${keyword}について、基本から実践まで徹底解説。${outline.outline[0].heading}など、初心者にも分かりやすく説明します。`;
   
   let htmlContent = '';

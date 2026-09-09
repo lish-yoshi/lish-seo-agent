@@ -688,8 +688,8 @@ export async function generateArticleBySection(
   htmlContent = fixHeadingTags(htmlContent, '結合直後');
 
   // 5. タイトルとメタディスクリプションを生成
-  const title = `【2025年最新】${keyword}完全ガイド｜${allSections[0].heading}から${allSections[allSections.length - 1].heading}まで徹底解説`;
-  const metaDescription = `${keyword}について、${allSections.map(s => s.heading).slice(0, 3).join('、')}など、初心者にもわかりやすく解説。2025年最新情報を網羅した完全ガイドです。`;
+  const title = `【${new Date().getFullYear()}年最新】${keyword}完全ガイド｜${allSections[0].heading}から${allSections[allSections.length - 1].heading}まで徹底解説`;
+  const metaDescription = `${keyword}について、${allSections.map(s => s.heading).slice(0, 3).join('、')}など、初心者にもわかりやすく解説。${new Date().getFullYear()}年最新情報を網羅した完全ガイドです。`;
   
   // プレーンテキスト版を生成
   const plainText = htmlContent

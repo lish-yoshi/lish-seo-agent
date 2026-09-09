@@ -789,6 +789,7 @@ ${linkList}
         temperature: 0.7,
         maxOutputTokens: 16384, // 20,000文字まで対応（8192→16384に増加）
         topP: 0.9,
+        thinkingConfig: { thinkingLevel: "low" },
       },
     };
 
@@ -939,6 +940,7 @@ export async function generateSectionV3(
       generationConfig: {
         temperature: 0.7,
         maxOutputTokens: 8192, // セクション分割時も増加（4096→8192）
+        thinkingConfig: { thinkingLevel: "low" },
       },
     };
 
