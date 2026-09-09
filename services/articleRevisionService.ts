@@ -373,7 +373,7 @@ async function fetchCompanyData(): Promise<any> {
     const apiKey = import.meta.env.VITE_INTERNAL_API_KEY;
 
     const backendUrl =
-      import.meta.env.VITE_BACKEND_URL || "http://localhost:3001";
+      import.meta.env.VITE_BACKEND_URL || "";
     const response = await fetch(`${backendUrl}/api/company-data`, {
       headers: {
         ...(apiKey && { "x-api-key": apiKey }),

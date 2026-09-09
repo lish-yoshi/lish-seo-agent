@@ -26,7 +26,7 @@ export async function searchGoogle(
 
     // サーバーのエンドポイントを呼び出す
     const backendUrl =
-      import.meta.env.VITE_BACKEND_URL || "http://localhost:3001";
+      import.meta.env.VITE_BACKEND_URL || "";
     const response = await fetch(`${backendUrl}/api/google-search`, {
       method: "POST",
       headers: {

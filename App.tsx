@@ -127,7 +127,7 @@ const App: React.FC = () => {
     // フル自動モード（単体 or スプシモード）の時に有効
     if (!isFullAutoMode) return;
 
-    const backendUrl = import.meta.env.VITE_BACKEND_URL || "http://localhost:3001";
+    const backendUrl = import.meta.env.VITE_BACKEND_URL || "";
 
     const keepAlive = () => {
       fetch(`${backendUrl}/api/health`)
@@ -835,7 +835,7 @@ const App: React.FC = () => {
       const apiUrl =
         import.meta.env.VITE_API_URL?.replace("/api", "") ||
         import.meta.env.VITE_BACKEND_URL ||
-        "http://localhost:3001";
+        "";
 
       console.log("🏥 ヘルスチェック開始:", `${apiUrl}/api/health`);
 
@@ -1255,7 +1255,7 @@ const App: React.FC = () => {
       const apiUrl =
         import.meta.env.VITE_API_URL?.replace("/api", "") ||
         import.meta.env.VITE_BACKEND_URL ||
-        "http://localhost:3001";
+        "";
 
       if (!apiKey) {
         throw new Error(

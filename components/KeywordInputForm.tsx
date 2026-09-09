@@ -38,7 +38,7 @@ const KeywordInputForm: React.FC<KeywordInputFormProps> = ({
   apiUsageWarning,
   apiBaseUrl = import.meta.env.VITE_API_URL?.replace("/api", "") ||
     import.meta.env.VITE_BACKEND_URL ||
-    "http://localhost:3001",
+    "",
   onOpenImageAgent,
 }) => {
   // デバッグ用ログ

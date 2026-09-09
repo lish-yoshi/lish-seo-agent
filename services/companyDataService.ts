@@ -359,7 +359,7 @@ class CompanyDataService {
 
       // バックエンドサーバーのURLを取得
       const backendUrl =
-        import.meta.env.VITE_BACKEND_URL || "http://localhost:3001";
+        import.meta.env.VITE_BACKEND_URL || "";
 
       // API Keyを取得
       const apiKey = import.meta.env.VITE_INTERNAL_API_KEY;
