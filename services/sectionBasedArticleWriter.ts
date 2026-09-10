@@ -688,8 +688,12 @@ export async function generateArticleBySection(
   htmlContent = fixHeadingTags(htmlContent, '結合直後');
 
   // 5. タイトルとメタディスクリプションを生成
-  const title = `【${new Date().getFullYear()}年最新】${keyword}完全ガイド｜${allSections[0].heading}から${allSections[allSections.length - 1].heading}まで徹底解説`;
-  const metaDescription = `${keyword}について、${allSections.map(s => s.heading).slice(0, 3).join('、')}など、初心者にもわかりやすく解説。${new Date().getFullYear()}年最新情報を網羅した完全ガイドです。`;
+  // 構成案側にLLM生成の値（文字数調整済み）があればそれを優先し、
+  // 無い旧形式の構成ではテンプレートにフォールバックする
+  const title = outline.title || `【${new Date().getFullYear()}年最新】${keyword}完全ガイド｜${allSections[0].heading}から${allSections[allSections.length - 1].heading}まで徹底解説`;
+  const metaDescription = outline.metaDescription || `${keyword}について、${allSections.map(s => s.heading).slice(0, 3).join('、')}など、初心者にもわかりやすく解説。${new Date().getFullYear()}年最新情報を網羅した完全ガイドです。`;
+  console.log(`📝 タイトル: ${outline.title ? 'outline由来' : 'テンプレート由来'} (${title.length}文字)`);
+  console.log(`📝 メタディスクリプション: ${outline.metaDescription ? 'outline由来' : 'テンプレート由来'} (${metaDescription.length}文字)`);
   
   // プレーンテキスト版を生成
   const plainText = htmlContent
