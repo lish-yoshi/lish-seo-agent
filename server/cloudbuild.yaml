@@ -39,7 +39,7 @@ steps:
       - '--max-instances=3'
       - '--set-env-vars=CLIENT_STORE=file,CLIENTS_FILE=/secrets/clients.json,NODE_ENV=production,SEO_FRONTEND_URL=https://seo.lishinc.co.jp,IMAGE_AGENT_URL=https://imager.lishinc.co.jp,SLACK_WEBHOOK_URL='
       # 検索API: SERPER_API_KEY があれば Serper 優先、無ければ Google Custom Search にフォールバック（scraping-server.js /api/google-search）
-      - '--set-secrets=INTERNAL_API_KEY=INTERNAL_API_KEY:latest,GEMINI_API_KEY=GEMINI_API_KEY:latest,SERPER_API_KEY=SERPER_API_KEY:latest,GOOGLE_API_KEY=GOOGLE_API_KEY:latest,GOOGLE_SEARCH_ENGINE_ID=GOOGLE_SEARCH_ENGINE_ID:latest,/secrets/clients.json=CLIENTS_JSON:latest'
+      - '--set-secrets=INTERNAL_API_KEY=INTERNAL_API_KEY:latest,GEMINI_API_KEY=GEMINI_API_KEY:latest,SERPER_API_KEY=SERPER_API_KEY:latest,GOOGLE_API_KEY=GOOGLE_API_KEY:latest,GOOGLE_SEARCH_ENGINE_ID=GOOGLE_SEARCH_ENGINE_ID:latest,/secrets/clients.json=CLIENTS_JSON:latest,WP_USER_ENGLISH_WITH=WP_USER_ENGLISH_WITH:latest,WP_PASSWORD_ENGLISH_WITH=WP_PASSWORD_ENGLISH_WITH:latest'
       # clients.json が参照する WP_USER_*/WP_PASS_* も --set-secrets に追加が必要。
       # 実サイト確定後に以下の形式で追記すること（値は Secret Manager に登録）:
       #   WP_USER_LISH_CORP=WP_USER_LISH_CORP:latest,WP_PASS_LISH_CORP=WP_PASS_LISH_CORP:latest
