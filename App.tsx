@@ -1396,7 +1396,7 @@ const App: React.FC = () => {
               ` (${queueProgress.current}/${queueProgress.total})`}
           </button>
           <a
-            href="/guide"
+            href="/guide.html"
             target="_blank"
             rel="noopener noreferrer"
             className="px-4 py-2 bg-blue-500 text-white hover:bg-blue-600 rounded-lg transition-all duration-200 text-sm font-medium shadow-sm"
