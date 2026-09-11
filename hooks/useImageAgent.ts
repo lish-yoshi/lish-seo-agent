@@ -1,4 +1,9 @@
 import { getActiveClientId } from "../services/clientContext";
+import {
+  buildImageGenUrl,
+  getImageGenOrigin,
+  getImageGenUrl as resolveImageGenUrl,
+} from "../utils/imageAgentUrl";
 /**
  * useImageAgent - 画像生成エージェント起動用の共通フック
  *
@@ -78,13 +83,8 @@ export function useImageAgent(options: UseImageAgentOptions = {}): UseImageAgent
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
   const currentArticleDataRef = useRef<ArticleDataForImageAgent | null>(null);
 
-  // 画像生成エージェントのURL取得
-  const getImageGenUrl = useCallback(() => {
-    return (
-      import.meta.env.VITE_IMAGE_GEN_URL ||
-      "http://localhost:5177"
-    );
-  }, []);
+  // 画像生成エージェントのURL取得（絶対URLに正規化）
+  const getImageGenUrl = useCallback(() => resolveImageGenUrl(), []);
 
   // タイムアウトをクリア
   const clearTimeoutTimer = useCallback(() => {
@@ -140,14 +140,11 @@ export function useImageAgent(options: UseImageAgentOptions = {}): UseImageAgent
   // 別タブで開く（フォールバック）
   const openInNewTab = useCallback(
     (articleData: ArticleDataForImageAgent): Window | null => {
-      const url = getImageGenUrl();
       const activeClientId = getActiveClientId();
       if (!activeClientId) {
         console.warn("⚠️ clientId が未選択の状態で画像生成エージェントを起動します");
       }
-      const urlWithClient = activeClientId
-        ? `${url}${url.includes("?") ? "&" : "?"}clientId=${encodeURIComponent(activeClientId)}`
-        : url;
+      const urlWithClient = buildImageGenUrl(activeClientId);
       console.log("🔗 画像生成エージェントを別タブで開きます:", urlWithClient);
 
       currentArticleDataRef.current = articleData;
@@ -180,7 +177,7 @@ export function useImageAgent(options: UseImageAgentOptions = {}): UseImageAgent
               score: articleData.score,
             },
           };
-          newWindow.postMessage(messageData, url);
+          newWindow.postMessage(messageData, getImageGenOrigin());
           console.log("✅ 記事データ送信完了！");
         }, 3000);
       } else {
@@ -231,7 +228,7 @@ export function useImageAgent(options: UseImageAgentOptions = {}): UseImageAgent
     };
 
     console.log("📤 iframeに記事データを送信中...", messageData);
-    contentWindow.postMessage(messageData, embedState.url);
+    contentWindow.postMessage(messageData, getImageGenOrigin());
     console.log("✅ iframeへのデータ送信完了！");
 
     setEmbedState((prev) =>

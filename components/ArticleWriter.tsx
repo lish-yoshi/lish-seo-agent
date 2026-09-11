@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from "react";
 import type { SeoOutline, SeoOutlineV2, SubheadingWithNote } from "../types";
 import { getActiveClientId } from "../services/clientContext";
+import { buildImageGenUrl, getImageGenOrigin } from "../utils/imageAgentUrl";
 import {
   generateArticle,
   regenerateSection,
@@ -1965,16 +1966,11 @@ ${
         console.log("  4. Slug自動設定");
       } else {
         // フォールバック: 別タブで開く
-        const imageGenUrl =
-          import.meta.env.VITE_IMAGE_GEN_URL ||
-          "http://localhost:5177";
         const activeClientId = getActiveClientId();
         if (!activeClientId) {
           console.warn("⚠️ clientId が未選択の状態で画像生成エージェントを起動します");
         }
-        const urlWithClient = activeClientId
-          ? `${imageGenUrl}${imageGenUrl.includes("?") ? "&" : "?"}clientId=${encodeURIComponent(activeClientId)}`
-          : imageGenUrl;
+        const urlWithClient = buildImageGenUrl(activeClientId);
         const newWindow = window.open(urlWithClient, "_blank");
 
         if (newWindow) {
@@ -1986,7 +1982,7 @@ ${
                 clientId: activeClientId,
                 data: imageGenData,
               },
-              imageGenUrl
+              getImageGenOrigin()
             );
             console.log("  ✅ データ送信完了");
           }, 2000);
@@ -3031,16 +3027,11 @@ const startImageGeneration = async (
       console.log("✅ iframe起動完了");
     } else {
       // フォールバック: 別タブで開く
-      const imageGenUrl =
-        import.meta.env.VITE_IMAGE_GEN_URL ||
-        "http://localhost:5177";
       const activeClientId = getActiveClientId();
       if (!activeClientId) {
         console.warn("⚠️ clientId が未選択の状態で画像生成エージェントを起動します");
       }
-      const urlWithClient = activeClientId
-        ? `${imageGenUrl}${imageGenUrl.includes("?") ? "&" : "?"}clientId=${encodeURIComponent(activeClientId)}`
-        : imageGenUrl;
+      const urlWithClient = buildImageGenUrl(activeClientId);
       const newWindow = window.open(urlWithClient, "_blank");
 
       if (newWindow) {
@@ -3053,7 +3044,7 @@ const startImageGeneration = async (
                 clientId: activeClientId,
                 data: imageGenData,
               },
-              imageGenUrl
+              getImageGenOrigin()
             );
             console.log("✅ データ送信完了");
           } catch (error) {

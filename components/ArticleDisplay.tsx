@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import type { SeoOutline } from "../types";
 import { getActiveClientId } from "../services/clientContext";
+import { buildImageGenUrl, getImageGenOrigin } from "../utils/imageAgentUrl";
 
 interface ArticleDisplayProps {
   article: {
@@ -99,17 +100,12 @@ ${article.plainText}`;
       console.log("✅ iframe起動完了");
     } else {
       // フォールバック: 別タブで開く
-      const imageGenUrl =
-        import.meta.env.VITE_IMAGE_GEN_URL ||
-        "http://localhost:5177";
-      const imageGenOrigin = new URL(imageGenUrl).origin;
+      const imageGenOrigin = getImageGenOrigin();
       const activeClientId = getActiveClientId();
       if (!activeClientId) {
         console.warn("⚠️ clientId が未選択の状態で画像生成エージェントを起動します");
       }
-      const urlWithClient = activeClientId
-        ? `${imageGenUrl}${imageGenUrl.includes("?") ? "&" : "?"}clientId=${encodeURIComponent(activeClientId)}`
-        : imageGenUrl;
+      const urlWithClient = buildImageGenUrl(activeClientId);
 
       console.log(`🚀 AI Article Imager for WordPressを開きます: ${urlWithClient}`);
       const newWindow = window.open(urlWithClient, "_blank");

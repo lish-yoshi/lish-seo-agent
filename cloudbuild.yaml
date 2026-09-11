@@ -17,7 +17,7 @@ steps:
         --build-arg VITE_GEMINI_API_KEY=$$GEMINI_API_KEY
         --build-arg VITE_BACKEND_URL=
         --build-arg VITE_INTERNAL_API_KEY=$$INTERNAL_API_KEY
-        --build-arg VITE_IMAGE_GEN_URL=/imager
+        --build-arg VITE_IMAGE_GEN_URL=https://imager.lishinc.co.jp
         --build-arg VITE_OPENAI_API_KEY=$$OPENAI_API_KEY
         --build-arg VITE_SLACK_WEBHOOK_URL=
         --build-arg VITE_ENABLE_SLACK_NOTIFICATIONS=false
