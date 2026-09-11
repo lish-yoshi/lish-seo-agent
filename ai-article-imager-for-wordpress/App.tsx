@@ -3,6 +3,10 @@ import { WPConfig, PostConfig, H2Section, AppState, ReportLog } from "./types";
 import { setClientId, clientHeaders } from "./services/clientContext";
 import { extractH1Title } from "./utils/parsers";
 import {
+  getAllowedParentOrigins,
+  isAllowedParentOrigin,
+} from "./utils/parentOrigins";
+import {
   parseHtmlWithIntelligentMatching,
   parseHtmlSimple,
   parseHtmlWithFilenameMatching,
@@ -167,19 +171,9 @@ const App: React.FC<AppProps> = ({ initialArticleData }) => {
   useEffect(() => {
     const handleMessage = (event: MessageEvent) => {
       // セキュリティ: 許可されたオリジンからのメッセージのみ受信
-      const ALLOWED_ORIGINS = [
-        "http://localhost:5178", // 現行開発環境
-        "http://localhost:5176", // レガシー（互換性）
-        "http://localhost:5177", // 画像生成エージェント
-        "http://127.0.0.1:5176", // 127.0.0.1でアクセスした場合
-        "http://127.0.0.1:5177", // 127.0.0.1でアクセスした場合
-        "http://127.0.0.1:5178", // 127.0.0.1でアクセスした場合
-        import.meta.env.VITE_MAIN_APP_URL, // 本番用（.envで設定）
-      ].filter(Boolean); // undefined を除外
-
-      if (!ALLOWED_ORIGINS.includes(event.origin)) {
+      if (!isAllowedParentOrigin(event.origin)) {
         console.warn("⚠️ Rejected message from unknown origin:", event.origin);
-        console.log("📋 Allowed origins:", ALLOWED_ORIGINS);
+        console.log("📋 Allowed origins:", getAllowedParentOrigins());
         return;
       }
 
@@ -321,22 +315,12 @@ const App: React.FC<AppProps> = ({ initialArticleData }) => {
   useEffect(() => {
     const handleMessage = (event: MessageEvent) => {
       // セキュリティ: 許可されたオリジンからのメッセージのみ受信
-      const ALLOWED_ORIGINS = [
-        "http://localhost:5178", // 現行開発環境
-        "http://localhost:5176", // レガシー（互換性）
-        "http://localhost:5177", // 画像生成エージェント
-        "http://127.0.0.1:5176", // 127.0.0.1でアクセスした場合
-        "http://127.0.0.1:5177", // 127.0.0.1でアクセスした場合
-        "http://127.0.0.1:5178", // 127.0.0.1でアクセスした場合
-        import.meta.env.VITE_MAIN_APP_URL, // 本番用（.envで設定）
-      ].filter(Boolean); // undefined を除外
-
-      if (!ALLOWED_ORIGINS.includes(event.origin)) {
+      if (!isAllowedParentOrigin(event.origin)) {
         console.warn(
           "⚠️ Rejected ARTICLE_DATA_TRANSFER from unknown origin:",
           event.origin
         );
-        console.log("📋 Allowed origins:", ALLOWED_ORIGINS);
+        console.log("📋 Allowed origins:", getAllowedParentOrigins());
         return;
       }
 

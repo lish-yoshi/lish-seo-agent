@@ -9,14 +9,15 @@ steps:
     args:
       - -c
       # Secret 経由: GEMINI_API_KEY / INTERNAL_API_KEY（秘密値）
-      # リテラル: BACKEND_URL=""（同一オリジン）/ MAIN_APP_URL=/（同一オリジン）
+      # リテラル: BACKEND_URL=""（同一オリジン）
+      #   MAIN_APP_URL=https://seo.lishinc.co.jp（postMessage の送受信に使う親アプリの絶対オリジン）
       #   BASE_PATH=/（imager.lishinc.co.jp のサブドメイン配信のためルート）
       - >-
         docker build
         --build-arg VITE_GEMINI_API_KEY=$$GEMINI_API_KEY
         --build-arg VITE_BACKEND_URL=
         --build-arg VITE_INTERNAL_API_KEY=$$INTERNAL_API_KEY
-        --build-arg VITE_MAIN_APP_URL=/
+        --build-arg VITE_MAIN_APP_URL=https://seo.lishinc.co.jp
         --build-arg VITE_BASE_PATH=/
         -t asia-northeast1-docker.pkg.dev/$PROJECT_ID/seo-app/ai-article-imager:latest .
     secretEnv:
