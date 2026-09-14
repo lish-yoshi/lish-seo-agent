@@ -14,6 +14,7 @@ interface ReportViewProps {
     metaDescription?: string;
     slug?: string;
     keyword?: string;
+    spreadsheetRow?: number;
   };
   autoExecute?: boolean;
 }
@@ -218,6 +219,37 @@ export const ReportView: React.FC<ReportViewProps> = ({
     }
   }, [autoExecute, finalHtml, postResult, isUploading, autoFlowExecuted]);
 
+  // 親ウィンドウ（SEOエージェント）に1記事分の結果を通知する。
+  // スプレッドシートモードのキューはこの通知で次のキーワードへ進むため、失敗時も必ず送る。
+  const notifyParentCompletion = (result: {
+    success: boolean;
+    keyword?: string;
+    row?: number;
+    error?: string;
+    postUrl?: string;
+  }) => {
+    const parentOrigin =
+      import.meta.env.VITE_MAIN_APP_URL || "http://localhost:5176";
+
+    // iframe内の場合はwindow.parent、別タブの場合はwindow.openerを使用
+    const parentWindow = window.parent !== window ? window.parent : window.opener;
+    const isIframe = window.parent !== window;
+
+    if (!parentWindow || !(isIframe || (window.opener && !window.opener.closed))) {
+      console.warn("⚠️ 親ウィンドウが見つからないか、既に閉じられています");
+      return;
+    }
+
+    try {
+      parentWindow.postMessage({ type: "ARTICLE_COMPLETED", ...result }, parentOrigin);
+      console.log(
+        `📤 親ウィンドウ (${parentOrigin}) に${result.success ? "完了" : "失敗"}通知を送信しました（${isIframe ? "iframe" : "別タブ"}経由）`
+      );
+    } catch (notifyError) {
+      console.error("❌ 親ウィンドウへの通知に失敗しました:", notifyError);
+    }
+  };
+
   const handlePreparePost = async () => {
     if (!articleHtml) {
       setPostResult({
@@ -320,6 +352,12 @@ export const ReportView: React.FC<ReportViewProps> = ({
       const errorMessage =
         error instanceof Error ? error.message : "An unknown error occurred.";
       setPostResult({ success: false, message: errorMessage });
+      notifyParentCompletion({
+        success: false,
+        keyword: metaData?.keyword,
+        row: metaData?.spreadsheetRow,
+        error: `画像アップロード失敗: ${errorMessage}`,
+      });
     } finally {
       setIsUploading(false);
     }
@@ -392,6 +430,8 @@ export const ReportView: React.FC<ReportViewProps> = ({
             },
             body: JSON.stringify({
               keyword: keyword,
+              // 行番号を渡すと同じキーワードが複数行あっても正しい行が更新される
+              row: metaData?.spreadsheetRow,
               url: link,
               slug: slug,
               title: articleTitle,
@@ -401,45 +441,43 @@ export const ReportView: React.FC<ReportViewProps> = ({
           const data = await response.json();
           if (data.success) {
             console.log(`✅ スプレッドシート更新成功: 行${data.row}`);
-
-            // 親ウィンドウに完了通知を送信（次のキーワード処理トリガー）
-            // iframe内の場合はwindow.parent、別タブの場合はwindow.openerを使用
-            const parentOrigin =
-              import.meta.env.VITE_MAIN_APP_URL || "http://localhost:5176";
-
-            // 親ウィンドウを取得（iframe対応）
-            const parentWindow = window.parent !== window ? window.parent : window.opener;
-            const isIframe = window.parent !== window;
-
-            if (parentWindow && (isIframe || (window.opener && !window.opener.closed))) {
-              const messageData = {
-                type: "ARTICLE_COMPLETED",
-                success: true,
-                row: data.row,
-                keyword: keyword,
-              };
-
-              parentWindow.postMessage(messageData, parentOrigin);
-              console.log(
-                `📤 親ウィンドウ (${parentOrigin}) に完了通知を送信しました（${isIframe ? 'iframe' : '別タブ'}経由）`
-              );
-            } else {
-              console.warn(
-                "⚠️ 親ウィンドウが見つからないか、既に閉じられています"
-              );
-            }
+            notifyParentCompletion({ success: true, row: data.row, keyword });
           } else {
             console.error("❌ スプレッドシート更新失敗:", data.error);
+            notifyParentCompletion({
+              success: false,
+              keyword,
+              row: metaData?.spreadsheetRow,
+              postUrl: link,
+              error: `スプレッドシート更新失敗（投稿は完了: ${link}）: ${data.error}`,
+            });
           }
         }
       } catch (spreadsheetError) {
         console.error("スプレッドシート更新エラー:", spreadsheetError);
-        // スプレッドシート更新エラーは無視して処理続行
+        // 投稿自体は成功しているため、画面上は成功のまま処理を続行する
+        notifyParentCompletion({
+          success: false,
+          keyword: metaData?.keyword,
+          row: metaData?.spreadsheetRow,
+          postUrl: link,
+          error: `スプレッドシート更新エラー（投稿は完了: ${link}）: ${
+            spreadsheetError instanceof Error
+              ? spreadsheetError.message
+              : String(spreadsheetError)
+          }`,
+        });
       }
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : "An unknown error occurred.";
       setPostResult({ success: false, message: errorMessage });
+      notifyParentCompletion({
+        success: false,
+        keyword: metaData?.keyword,
+        row: metaData?.spreadsheetRow,
+        error: `WordPress投稿失敗: ${errorMessage}`,
+      });
     } finally {
       setIsPosting(false);
       setProgressMessage("");

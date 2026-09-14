@@ -35,6 +35,7 @@ interface ArticleData {
   metaDescription?: string;
   slug?: string; // slugを追加
   keyword?: string;
+  spreadsheetRow?: number;
 }
 
 interface AppProps {
@@ -132,12 +133,16 @@ const App: React.FC<AppProps> = ({ initialArticleData }) => {
     metaDescription?: string;
     slug?: string;
     keyword?: string;
+    spreadsheetRow?: number;
   }>({
     metaDescription:
       initialArticleData?.metaDescription ||
       articleDataFromStorage?.metaDescription,
     slug: initialArticleData?.slug || articleDataFromStorage?.slug,
     keyword: initialArticleData?.keyword || articleDataFromStorage?.keyword,
+    spreadsheetRow:
+      initialArticleData?.spreadsheetRow ||
+      articleDataFromStorage?.spreadsheetRow,
   });
   const [baseImages, setBaseImages] = useState<File[]>([]);
 
@@ -213,6 +218,7 @@ const App: React.FC<AppProps> = ({ initialArticleData }) => {
           metaDescription: articleData.metaDescription,
           slug: articleData.slug,
           keyword: articleData.keyword,
+          spreadsheetRow: articleData.spreadsheetRow,
         });
 
         // スプレッドシート行番号をlocalStorageに保存（5177側で）
@@ -364,6 +370,7 @@ const App: React.FC<AppProps> = ({ initialArticleData }) => {
           metaDescription: articleData.metaDescription,
           slug: articleData.slug,
           keyword: articleData.keyword,
+          spreadsheetRow: articleData.spreadsheetRow,
         });
       }
     };
