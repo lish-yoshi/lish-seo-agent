@@ -47,12 +47,22 @@ async function resolveSpreadsheetId(req) {
 async function updateSpreadsheetCell(req, res) {
   const spreadsheetId = await resolveSpreadsheetId(req);
   try {
-    const { keyword, url, slug, title, metaDescription } = req.body;
+    const { keyword, url, slug, title, metaDescription, row } = req.body;
 
     if (!keyword || !url) {
       return res.status(400).json({
         success: false,
         error: "keyword と url は必須です",
+      });
+    }
+
+    // 行番号は任意（旧クライアント互換）。渡された場合は正の整数のみ受け付ける
+    const hasRow = row !== undefined && row !== null && row !== "";
+    const requestedRow = hasRow ? Number(row) : null;
+    if (hasRow && (!Number.isInteger(requestedRow) || requestedRow < 1)) {
+      return res.status(400).json({
+        success: false,
+        error: `行番号が不正です: ${row}`,
       });
     }
 
@@ -107,32 +117,52 @@ async function updateSpreadsheetCell(req, res) {
     const authClient = await auth.getClient();
     const sheets = google.sheets({ version: "v4", auth: authClient });
 
-    // B列（キーワード列）全体を取得
-    const searchRange = "シート1!B:B";
-    const searchResponse = await sheets.spreadsheets.values.get({
-      spreadsheetId,
-      range: searchRange,
-    });
-
-    const rows = searchResponse.data.values || [];
-
-    // キーワードが一致する行を探す
+    // 取得側（spreadsheet-mode.js）は前後の空白を削ってキーワードを返すため、比較も両側を trim する
+    const normalizedKeyword = String(keyword).trim();
     let targetRow = -1;
-    for (let i = 0; i < rows.length; i++) {
-      if (rows[i][0] === keyword) {
-        targetRow = i + 1; // 1-indexed
-        break;
-      }
-    }
 
-    if (targetRow === -1) {
-      return res.status(404).json({
-        success: false,
-        error: `キーワード "${keyword}" が見つかりませんでした`,
+    if (requestedRow !== null) {
+      // 行番号指定: 同じキーワードが複数行あっても取り違えないよう、その行を直接更新する。
+      // 別の行を書き換えないよう、B列が一致することを確認してから進める
+      const cellResponse = await sheets.spreadsheets.values.get({
+        spreadsheetId,
+        range: `シート1!B${requestedRow}`,
       });
-    }
+      const cellKeyword = String(cellResponse.data.values?.[0]?.[0] ?? "").trim();
 
-    console.log(`✅ キーワード "${keyword}" を行${targetRow}で発見`);
+      if (cellKeyword !== normalizedKeyword) {
+        return res.status(409).json({
+          success: false,
+          error: `行${requestedRow}のキーワードが一致しません（シート: "${cellKeyword}" / リクエスト: "${normalizedKeyword}"）`,
+        });
+      }
+
+      targetRow = requestedRow;
+      console.log(`✅ 行${targetRow}のキーワード一致を確認（行番号指定）`);
+    } else {
+      // 行番号なし（旧クライアント）: 従来どおりキーワードが最初に一致した行を更新する
+      const searchResponse = await sheets.spreadsheets.values.get({
+        spreadsheetId,
+        range: "シート1!B:B",
+      });
+      const rows = searchResponse.data.values || [];
+
+      for (let i = 0; i < rows.length; i++) {
+        if (String(rows[i][0] ?? "").trim() === normalizedKeyword) {
+          targetRow = i + 1; // 1-indexed
+          break;
+        }
+      }
+
+      if (targetRow === -1) {
+        return res.status(404).json({
+          success: false,
+          error: `キーワード "${keyword}" が見つかりませんでした`,
+        });
+      }
+
+      console.log(`✅ キーワード "${keyword}" を行${targetRow}で発見（キーワード検索）`);
+    }
 
     // C列（編集用URL）を更新
     const urlUpdateRange = `シート1!C${targetRow}`;
