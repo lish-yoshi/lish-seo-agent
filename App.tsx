@@ -36,6 +36,38 @@ import ClientSelector from "./components/ClientSelector";
 import { restoreActiveClient, clientHeaders } from "./services/clientContext";
 import { isAllowedImageAgentOrigin } from "./utils/imageAgentUrl";
 
+// imager は見出し（H2）1つにつき画像を1枚、順番に生成するため、無応答タイムアウトを見出し数に比例させる
+const IMAGE_AGENT_TIMEOUT_BASE_MS = 5 * 60 * 1000;
+const IMAGE_AGENT_TIMEOUT_PER_HEADING_MS = 90 * 1000;
+const IMAGE_AGENT_TIMEOUT_FALLBACK_MS = 20 * 60 * 1000;
+
+function resolveImageAgentTimeout(articleData: ArticleDataForImageAgent): number {
+  let headingCount = 0;
+  try {
+    const doc = new DOMParser().parseFromString(articleData.content || "", "text/html");
+    // imager は文字のない見出しには画像を作らないため、同じ条件で数える
+    headingCount = Array.from(doc.querySelectorAll("h2")).filter(
+      (h2) => (h2.textContent || "").trim() !== ""
+    ).length;
+  } catch (error) {
+    console.warn("⚠️ 記事HTMLから見出し数を取得できませんでした:", error);
+  }
+
+  if (headingCount === 0) {
+    console.log(
+      `⏱️ 画像生成エージェントのタイムアウト: ${IMAGE_AGENT_TIMEOUT_FALLBACK_MS / 60000}分（見出し数を取得できないため既定値）`
+    );
+    return IMAGE_AGENT_TIMEOUT_FALLBACK_MS;
+  }
+
+  const timeoutMs =
+    IMAGE_AGENT_TIMEOUT_BASE_MS + headingCount * IMAGE_AGENT_TIMEOUT_PER_HEADING_MS;
+  console.log(
+    `⏱️ 画像生成エージェントのタイムアウト: ${timeoutMs / 60000}分（5分 + 見出し${headingCount}件 × 90秒）`
+  );
+  return timeoutMs;
+}
+
 const App: React.FC = () => {
   const [currentPage, setCurrentPage] = useState<
     "main" | "textcheck" | "factcheck" | "revision"
@@ -202,11 +234,13 @@ const App: React.FC = () => {
           success: false,
           keyword: data?.keyword,
           row: data?.row,
-          reason: "画像生成エージェントが20分間応答しませんでした",
+          reason: `画像生成エージェントが${
+            (data?.timeoutMs ?? IMAGE_AGENT_TIMEOUT_FALLBACK_MS) / 60000
+          }分間応答しませんでした`,
         });
       }
     },
-    timeout: 20 * 60 * 1000, // 20分タイムアウト
+    timeout: resolveImageAgentTimeout,
   });
 
   // クローズ関数をrefに保存（useEffect内から参照するため）

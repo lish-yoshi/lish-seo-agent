@@ -42,9 +42,15 @@ export interface UseImageAgentOptions {
   /** エラー時のコールバック */
   onError?: (error: string) => void;
   /** 完了時のコールバック */
-  onComplete?: (success: boolean, data?: { row?: number; keyword?: string }) => void;
-  /** タイムアウト（ミリ秒） - デフォルト5分 */
-  timeout?: number;
+  onComplete?: (
+    success: boolean,
+    data?: { row?: number; keyword?: string; timeoutMs?: number }
+  ) => void;
+  /**
+   * タイムアウト（ミリ秒） - デフォルト5分。
+   * 記事ごとに変える場合は、開く記事データから値を返す関数を渡す
+   */
+  timeout?: number | ((articleData: ArticleDataForImageAgent) => number);
 }
 
 export interface UseImageAgentReturn {
@@ -95,22 +101,24 @@ export function useImageAgent(options: UseImageAgentOptions = {}): UseImageAgent
   }, []);
 
   // タイムアウトを設定
-  const setTimeoutTimer = useCallback(() => {
+  const setTimeoutTimer = useCallback((timeoutMs: number) => {
     clearTimeoutTimer();
+    const minutes = timeoutMs / 60000;
     timeoutRef.current = setTimeout(() => {
-      console.warn("⏰ 画像生成エージェントがタイムアウトしました");
+      console.warn(`⏰ 画像生成エージェントがタイムアウトしました（${minutes}分経過）`);
       if (onError) {
-        onError("画像生成エージェントがタイムアウトしました（5分経過）");
+        onError(`画像生成エージェントがタイムアウトしました（${minutes}分経過）`);
       }
       // タイムアウト時は完了扱いで次へ進む
       if (onComplete) {
         onComplete(false, {
           row: currentArticleDataRef.current?.spreadsheetRow,
           keyword: currentArticleDataRef.current?.keyword,
+          timeoutMs,
         });
       }
-    }, timeout);
-  }, [clearTimeoutTimer, onError, onComplete, timeout]);
+    }, timeoutMs);
+  }, [clearTimeoutTimer, onError, onComplete]);
 
   // iframeで開く
   const openInIframe = useCallback(
@@ -132,9 +140,10 @@ export function useImageAgent(options: UseImageAgentOptions = {}): UseImageAgent
       }
 
       // タイムアウト設定
-      setTimeoutTimer();
+      const timeoutMs = typeof timeout === "function" ? timeout(articleData) : timeout;
+      setTimeoutTimer(timeoutMs);
     },
-    [getImageGenUrl, onIframeOpen, setTimeoutTimer]
+    [getImageGenUrl, onIframeOpen, setTimeoutTimer, timeout]
   );
 
   // 別タブで開く（フォールバック）
