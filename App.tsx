@@ -34,6 +34,7 @@ import { useImageAgent, type ArticleDataForImageAgent } from "./hooks/useImageAg
 import { ImageGeneratorIframe } from "./components/ImageGeneratorIframe";
 import ClientSelector from "./components/ClientSelector";
 import { restoreActiveClient, clientHeaders } from "./services/clientContext";
+import { isAllowedImageAgentOrigin } from "./utils/imageAgentUrl";
 
 const App: React.FC = () => {
   const [currentPage, setCurrentPage] = useState<
@@ -101,6 +102,11 @@ const App: React.FC = () => {
     keyword: string;
   } | null>(null);
 
+  // スプレッドシートモードで失敗・無応答のためスキップしたキーワード（キュー完了後も表示を残す）
+  const [failedQueueItems, setFailedQueueItems] = useState<
+    Array<{ row?: number; keyword: string; reason: string; at: string }>
+  >([]);
+
   // キュー処理の二重実行を防ぐためのref
   const queueIndexRef = useRef<number>(0);
   const queueActiveRef = useRef<boolean>(false);
@@ -156,6 +162,17 @@ const App: React.FC = () => {
   // キュー処理用のクリーンアップ関数をrefに保存
   const cleanupQueueStateRef = useRef<() => void>();
 
+  // 画像生成エージェントの1記事分の結果（成功・失敗・無応答）でキューを進める。
+  // メッセージ受信と無応答タイムアウトの両方から呼ぶため、最新の state を参照できる ref に置く。
+  const advanceQueueRef = useRef<
+    (result: {
+      success: boolean;
+      keyword?: string;
+      row?: number;
+      reason?: string;
+    }) => void
+  >(undefined);
+
   // 画像生成エージェント用のフック
   const imageAgentCloseIframeRef = useRef<() => void>();
   const {
@@ -178,7 +195,16 @@ const App: React.FC = () => {
       console.error("❌ 画像生成エージェントエラー:", error);
     },
     onComplete: (success, data) => {
-      console.log("✅ 画像生成エージェント完了:", { success, data });
+      // useImageAgent がこれを呼ぶのは無応答タイムアウト時のみ（success=false）
+      console.log("⏰ 画像生成エージェント終了:", { success, data });
+      if (!success && advanceQueueRef.current) {
+        advanceQueueRef.current({
+          success: false,
+          keyword: data?.keyword,
+          row: data?.row,
+          reason: "画像生成エージェントが20分間応答しませんでした",
+        });
+      }
     },
     timeout: 20 * 60 * 1000, // 20分タイムアウト
   });
@@ -210,50 +236,46 @@ const App: React.FC = () => {
     };
   });
 
-  // ARTICLE_COMPLETED メッセージを受け取るuseEffect（循環依存を回避）
+  // 画像生成エージェントの結果でキューを進める処理（毎レンダーで最新の state・関数を参照するよう更新）
   useEffect(() => {
-    const handleMessage = (event: MessageEvent) => {
-      // デバッグ: すべてのメッセージをログ出力
-      console.log("🔍 メッセージ受信:", {
-        origin: event.origin,
-        type: event.data?.type,
-        success: event.data?.success,
-        data: event.data,
-      });
-
-      // 一時的にオリジンチェックを無効化（デバッグ用）
-      // if (event.origin !== "http://localhost:5177") {
-      //   console.log(
-      //     "⚠️ 許可されていないオリジンからのメッセージ:",
-      //     event.origin
-      //   );
-      //   return;
-      // }
-
-      if (event.data?.type === "ARTICLE_COMPLETED") {
-        console.log("🎯 ARTICLE_COMPLETEDメッセージを検出:", {
-          origin: event.origin,
-          success: event.data?.success,
-          fullData: event.data,
-        });
-      }
-
-      if (event.data?.type !== "ARTICLE_COMPLETED" || !event.data?.success) {
-        console.log("⚠️ ARTICLE_COMPLETEDメッセージではありません");
+    advanceQueueRef.current = ({
+      success,
+      keyword: resultKeyword,
+      row,
+      reason,
+    }) => {
+      if (!queueActiveRef.current) {
+        // キュー外（単発実行）では、失敗時は画面にエラーを残すため iframe を閉じない
+        if (success && imageAgentCloseIframeRef.current) {
+          console.log("🚪 画像生成エージェントiframeを自動クローズします");
+          imageAgentCloseIframeRef.current();
+        }
+        console.log("⚠️ キューが非アクティブです");
         return;
       }
 
-      console.log("📨 記事完了通知を受信しました");
+      const currentItem = keywordQueueRef.current[queueIndexRef.current];
 
-      // 画像生成エージェントのiframeを閉じる
-      if (imageAgentCloseIframeRef.current) {
-        console.log("🚪 画像生成エージェントiframeを自動クローズします");
-        imageAgentCloseIframeRef.current();
-      }
+      // 前の記事の通知が遅れて届いた場合（例: タイムアウトで先に進んだ後の完了通知）に、
+      // 処理中の記事を飛ばさないよう、処理中の記事と一致しない通知は無視する。
+      // 行番号で照合するので、同じキーワードが連続していても区別できる。
+      // 行番号を含まない通知（旧 imager など）だけはキーワードで照合する。
+      const receivedRow =
+        row !== undefined && row !== null && Number.isInteger(Number(row))
+          ? Number(row)
+          : undefined;
+      const isStaleNotice =
+        !!currentItem &&
+        (receivedRow !== undefined
+          ? receivedRow !== currentItem.row
+          : !!resultKeyword &&
+            resultKeyword.trim() !== currentItem.keyword.trim());
 
-      // refで最新のqueueActiveを確認
-      if (!queueActiveRef.current) {
-        console.log("⚠️ キューが非アクティブです");
+      if (isStaleNotice) {
+        console.warn("⚠️ 処理中の記事と一致しない通知を無視しました:", {
+          received: { row: receivedRow, keyword: resultKeyword },
+          current: { row: currentItem.row, keyword: currentItem.keyword },
+        });
         return;
       }
 
@@ -263,6 +285,25 @@ const App: React.FC = () => {
           "⚠️ すでに次のキーワードを起動中のため、完了通知をスキップしました"
         );
         return;
+      }
+
+      // 画像生成エージェントのiframeを閉じる
+      if (imageAgentCloseIframeRef.current) {
+        console.log("🚪 画像生成エージェントiframeを自動クローズします");
+        imageAgentCloseIframeRef.current();
+      }
+
+      if (!success) {
+        const failedItem = {
+          row: receivedRow ?? currentItem?.row,
+          keyword: resultKeyword ?? currentItem?.keyword ?? "（不明）",
+          reason: reason || "原因不明",
+          at: new Date().toLocaleTimeString(),
+        };
+        console.error(
+          `❌ 記事処理に失敗したためスキップします: 行${failedItem.row ?? "?"}「${failedItem.keyword}」 - ${failedItem.reason}`
+        );
+        setFailedQueueItems((prev) => [...prev, failedItem]);
       }
 
       const nextIndex = queueIndexRef.current + 1;
@@ -309,6 +350,36 @@ const App: React.FC = () => {
           isLaunchingRef.current = false;
         }, 500);
       }
+    };
+  });
+
+  // ARTICLE_COMPLETED メッセージを受け取るuseEffect（循環依存を回避）
+  useEffect(() => {
+    const handleMessage = (event: MessageEvent) => {
+      if (event.data?.type !== "ARTICLE_COMPLETED") {
+        return;
+      }
+
+      if (!isAllowedImageAgentOrigin(event.origin)) {
+        console.warn(
+          "⚠️ 許可されていないオリジンからの完了通知を拒否しました:",
+          event.origin
+        );
+        return;
+      }
+
+      const success = event.data.success === true;
+      console.log(
+        success ? "📨 記事完了通知を受信しました" : "📨 記事失敗通知を受信しました",
+        event.data
+      );
+
+      advanceQueueRef.current?.({
+        success,
+        keyword: event.data.keyword,
+        row: event.data.row,
+        reason: event.data.error,
+      });
     };
 
     window.addEventListener("message", handleMessage);
@@ -921,6 +992,8 @@ const App: React.FC = () => {
               total: keywordQueueRef.current.length,
             });
             setCurrentSpreadsheetRow(nextKeyword.row);
+            // 画像生成エージェントへ渡す行番号は ArticleWriter が localStorage から読むため、ここでも更新する
+            localStorage.setItem("currentSpreadsheetRow", nextKeyword.row.toString());
 
             // 3秒待ってから再開（サーバー安定化のため）
             setTimeout(() => {
@@ -1057,6 +1130,7 @@ const App: React.FC = () => {
                   total: keywordQueueRef.current.length,
                 });
                 setCurrentSpreadsheetRow(nextKeyword.row);
+                localStorage.setItem("currentSpreadsheetRow", nextKeyword.row.toString());
 
                 console.log(
                   "⏭️ 3分後の次のキーワード処理（エラーハンドリング付き）"
@@ -1169,6 +1243,7 @@ const App: React.FC = () => {
 
       // キュー配列を保存
       setKeywordQueue(keywords);
+      setFailedQueueItems([]);
       setQueueProgress({ current: 0, total: keywords.length });
       setQueueIndex(0);
       setQueueActive(true);
@@ -1521,6 +1596,10 @@ const App: React.FC = () => {
                             total: keywordQueueRef.current.length,
                           });
                           setCurrentSpreadsheetRow(nextKeyword.row);
+                          localStorage.setItem(
+                            "currentSpreadsheetRow",
+                            nextKeyword.row.toString()
+                          );
 
                           handleGenerateFullAutoWithRecovery(
                             nextKeyword.keyword,
@@ -1539,6 +1618,33 @@ const App: React.FC = () => {
                     </button>
                   )}
                 </div>
+              </div>
+            )}
+
+            {/* スプレッドシートモードでスキップしたキーワード（キュー完了後も残す） */}
+            {failedQueueItems.length > 0 && (
+              <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
+                <div className="flex items-center justify-between mb-2">
+                  <h3 className="text-red-700 font-semibold">
+                    スキップしたキーワード（{failedQueueItems.length}件）
+                  </h3>
+                  {!isProcessingQueue && (
+                    <button
+                      onClick={() => setFailedQueueItems([])}
+                      className="px-3 py-1 bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm rounded border border-gray-300 transition-all duration-200"
+                    >
+                      閉じる
+                    </button>
+                  )}
+                </div>
+                <ul className="space-y-1 text-sm text-red-800">
+                  {failedQueueItems.map((item, index) => (
+                    <li key={`${item.keyword}-${index}`}>
+                      行{item.row ?? "?"}「{item.keyword}」— {item.reason}（
+                      {item.at}）
+                    </li>
+                  ))}
+                </ul>
               </div>
             )}
 
