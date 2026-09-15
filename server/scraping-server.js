@@ -839,7 +839,13 @@ app.get("/api/health", async (req, res) => {
     enabledCount = enabled.length;
     enabledClientIds = enabled.map((c) => c.id);
   } catch (err) {
-    clientStoreError = err.message;
+    // 認証情報が混ざらないよう、外部には固定文言＋エラー種別だけを返す。
+    // 詳細（store 側でマスク済み）はサーバーログにのみ出す。
+    clientStoreError = store.describeError(err);
+    console.error(
+      `❌ /api/health クライアントストア読み込み失敗: ${clientStoreError}` +
+        (err && err.detail ? ` | ${err.detail}` : "")
+    );
   }
   res.json({
     status: "ok",

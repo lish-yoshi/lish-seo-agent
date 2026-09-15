@@ -35,6 +35,43 @@ function fromEnv(varName) {
 }
 
 /**
+ * Secret Manager 由来の値を読む。
+ * 登録時に末尾の改行や制御文字が混ざることがあり、そのまま HTTP ヘッダーに
+ * 載せると fetch が「不正なヘッダー」で失敗する。制御文字を除去して trim する。
+ */
+function readSecret(varName) {
+  const raw = process.env[varName];
+  if (typeof raw !== "string") return "";
+  return raw.replace(/[\x00-\x1f\x7f]/g, "").trim();
+}
+
+/** 秘密値をログやエラー文から伏せる。値が空なら何もしない。 */
+function maskSecrets(text, secrets) {
+  let out = String(text ?? "");
+  for (const s of secrets) {
+    if (s && s.length >= 8) out = out.split(s).join("***");
+  }
+  return out;
+}
+
+/**
+ * ストア読み込みエラーを、外部に返してよい形に落とす。
+ * 認証情報や生のエラー文は含めず、固定文言＋エラー種別（code）だけにする。
+ * /api/health の clientStoreError はこれを使う。
+ */
+function describeError(err) {
+  const code = (err && err.code) || "CLIENT_STORE_ERROR";
+  return `クライアントストアの読み込みに失敗しました (${code})`;
+}
+
+function storeError(code, detail) {
+  const e = new Error(`クライアントストアの読み込みに失敗しました (${code})`);
+  e.code = code;
+  if (detail) e.detail = detail; // マスク済みの詳細。ログ用
+  return e;
+}
+
+/**
  * 生の設定オブジェクトを正規化する。
  * 欠けているフィールドは既定値で埋め、CMS認証情報を解決する。
  */
@@ -86,7 +123,8 @@ function normalize(raw) {
 
 async function loadFromFile() {
   if (!fs.existsSync(CLIENTS_FILE)) {
-    throw new Error(
+    throw storeError(
+      "CLIENTS_FILE_NOT_FOUND",
       `クライアント設定ファイルが見つかりません: ${CLIENTS_FILE}\n` +
         `clients.example.json をコピーして clients.json を作成してください。`
     );
@@ -97,24 +135,51 @@ async function loadFromFile() {
 }
 
 async function loadFromSupabase() {
-  const url = process.env.SUPABASE_URL;
-  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  const url = readSecret("SUPABASE_URL");
+  const key = readSecret("SUPABASE_SERVICE_ROLE_KEY");
   if (!url || !key) {
-    throw new Error(
+    throw storeError(
+      "SUPABASE_CONFIG_MISSING",
       "CLIENT_STORE=supabase ですが SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY が未設定です"
     );
   }
   const fetch = require("node-fetch");
-  // file 経路と同じく enabled=false も含めて全件返す。
-  // 有効判定は getClient() / 各APIが行う（/api/health の件数表示も両経路で揃う）。
-  const res = await fetch(
-    `${url.replace(/\/+$/, "")}/rest/v1/clients?select=*&order=id.asc`,
-    { headers: { apikey: key, Authorization: `Bearer ${key}` } }
-  );
-  if (!res.ok) {
-    throw new Error(`Supabaseからのクライアント取得に失敗: ${res.status}`);
+  const endpoint = `${url.replace(/\/+$/, "")}/rest/v1/clients?select=*&order=id.asc`;
+
+  // 新形式の Secret key（sb_secret_…）も旧 service_role JWT も、
+  // PostgREST は apikey と Authorization: Bearer の両方に同じ値を受け取る。
+  let res;
+  try {
+    // file 経路と同じく enabled=false も含めて全件返す。
+    // 有効判定は getClient() / 各APIが行う（/api/health の件数表示も両経路で揃う）。
+    res = await fetch(endpoint, {
+      headers: { apikey: key, Authorization: `Bearer ${key}` },
+    });
+  } catch (err) {
+    // ネットワーク・ヘッダー不正など。生のメッセージにキーが混ざりうるのでマスクする
+    throw storeError("SUPABASE_FETCH_FAILED", maskSecrets(err.message, [key, url]));
   }
-  const rows = await res.json();
+  if (!res.ok) {
+    let body = "";
+    try {
+      body = await res.text();
+    } catch (_) {
+      /* 本文なし */
+    }
+    throw storeError(
+      `SUPABASE_HTTP_${res.status}`,
+      maskSecrets(body.slice(0, 300), [key, url])
+    );
+  }
+  let rows;
+  try {
+    rows = await res.json();
+  } catch (err) {
+    throw storeError("SUPABASE_BAD_JSON", maskSecrets(err.message, [key, url]));
+  }
+  if (!Array.isArray(rows)) {
+    throw storeError("SUPABASE_BAD_JSON", "配列以外の応答");
+  }
   return rows.map((r) =>
     normalize({
       id: r.id,
@@ -208,4 +273,10 @@ async function validateAll() {
   return { count: clients.length, problems };
 }
 
-module.exports = { listClients, getClient, toPublic, validateAll };
+module.exports = {
+  listClients,
+  getClient,
+  toPublic,
+  validateAll,
+  describeError,
+};
