@@ -10,8 +10,11 @@
  * これによりクライアント一覧を Git や DB に置いても資格情報が漏れない。
  *
  * データソース:
- *   CLIENT_STORE=file      … CLIENTS_FILE のJSONを読む（既定 / ローカル・少数運用）
- *   CLIENT_STORE=supabase  … Supabase の clients テーブルを読む（社数が増えたら）
+ *   CLIENT_STORE=file      … CLIENTS_FILE のJSONを読む（既定 / ロールバック用）
+ *   CLIENT_STORE=supabase  … Supabase の clients テーブルを読む（本番の正典。T-01 で移行）
+ *
+ * どちらの経路も normalize() を通すため、呼び出し側は同じ形の配列を受け取る。
+ * 読み取り専用。登録・更新は T-01b で別途実装する。
  */
 
 const fs = require("fs");
@@ -73,6 +76,11 @@ function normalize(raw) {
 
     spreadsheetId: raw.spreadsheetId || "",
     companyDataFolderId: raw.companyDataFolderId || "",
+
+    // Supabase 移行（T-01）で追加した列。file 経路では未定義なので既定値で埋める。
+    isTest: raw.isTest === true,
+    siteUrl: raw.siteUrl || null,
+    cockpitClientId: raw.cockpitClientId || null,
   };
 }
 
@@ -97,8 +105,10 @@ async function loadFromSupabase() {
     );
   }
   const fetch = require("node-fetch");
+  // file 経路と同じく enabled=false も含めて全件返す。
+  // 有効判定は getClient() / 各APIが行う（/api/health の件数表示も両経路で揃う）。
   const res = await fetch(
-    `${url.replace(/\/+$/, "")}/rest/v1/clients?select=*&enabled=eq.true`,
+    `${url.replace(/\/+$/, "")}/rest/v1/clients?select=*&order=id.asc`,
     { headers: { apikey: key, Authorization: `Bearer ${key}` } }
   );
   if (!res.ok) {
@@ -114,6 +124,9 @@ async function loadFromSupabase() {
       cms: r.cms,
       spreadsheetId: r.spreadsheet_id,
       companyDataFolderId: r.company_data_folder_id,
+      isTest: r.is_test,
+      siteUrl: r.site_url,
+      cockpitClientId: r.cockpit_client_id,
     })
   );
 }
@@ -161,6 +174,9 @@ function toPublic(client) {
     },
     hasSpreadsheet: Boolean(client.spreadsheetId),
     hasCompanyData: Boolean(client.companyDataFolderId),
+    isTest: client.isTest,
+    siteUrl: client.siteUrl,
+    cockpitClientId: client.cockpitClientId,
   };
 }
 
