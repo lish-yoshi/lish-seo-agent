@@ -88,7 +88,7 @@ app.use(
       callback(new Error("Not allowed by CORS"));
     },
     credentials: true,
-    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "x-api-key", "x-client-id", "Authorization"],
     exposedHeaders: ["Content-Range", "X-Content-Range"],
     maxAge: 86400, // 24時間キャッシュ
@@ -1160,6 +1160,13 @@ app.post("/api/slack-notify", async (req, res) => {
 // CMS連携（WordPress / Payload）はクライアント別ルートに集約
 // 旧 /api/wordpress/* も互換のため server/api/cms.js 側で維持している
 cmsRoutes.register(app);
+
+// クライアント管理 API（T-01b）。フィーチャーフラグ ENABLE_CLIENTS_ADMIN（既定 false）。
+// off のときはモジュールを require すらせず、/api/admin/* は従来どおり 404 になる。
+if (process.env.ENABLE_CLIENTS_ADMIN === "true") {
+  require("./api/clients-admin").register(app);
+  console.log("🛠 クライアント管理 API を有効化しました (/api/admin/*)");
+}
 
 // グローバルエラーハンドラー
 app.use((err, req, res, next) => {
