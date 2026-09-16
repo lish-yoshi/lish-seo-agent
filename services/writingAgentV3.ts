@@ -10,6 +10,7 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 import { companyDataService } from "./companyDataService";
 import { curriculumDataService } from "./curriculumDataService";
 import { getContextForKeywords, isSupabaseAvailable } from "./primaryDataService";
+import { clientHeaders } from "./clientContext";
 // latestAIModelsは汎用化のため削除
 
 const API_KEY =
@@ -567,7 +568,7 @@ async function fetchInternalLinkMap(): Promise<Map<string, string>> {
       `${API_URL}/api/spreadsheet-mode/internal-links`,
       {
         headers: {
-          "x-api-key": API_KEY,
+          ...clientHeaders(),
         },
       }
     );
