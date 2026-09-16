@@ -27,6 +27,12 @@ class SlackService {
    * Slack通知を送信
    */
   private async send(message: SlackMessage): Promise<void> {
+    // seo-frontend の slackNotificationService と同じ判定。
+    // VITE_ENABLE_SLACK_NOTIFICATIONS が "true" のときだけ送信する（既定は無効）。
+    if (import.meta.env.VITE_ENABLE_SLACK_NOTIFICATIONS !== "true") {
+      console.log("ℹ️ Slack通知は無効化されています（VITE_ENABLE_SLACK_NOTIFICATIONS != true）");
+      return;
+    }
     try {
       const response = await fetch(this.SLACK_NOTIFY_URL, {
         method: "POST",

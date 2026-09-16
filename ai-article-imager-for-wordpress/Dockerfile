@@ -16,6 +16,7 @@
   ARG VITE_INTERNAL_API_KEY
   ARG VITE_MAIN_APP_URL
   ARG VITE_BASE_PATH=/
+  ARG VITE_ENABLE_SLACK_NOTIFICATIONS
 
   # .envファイルを作成（Viteが読み込めるように）
   RUN echo "GEMINI_API_KEY=${VITE_GEMINI_API_KEY}" > .env && \
@@ -24,7 +25,8 @@
       echo "VITE_API_URL=${VITE_BACKEND_URL}/api" >> .env && \
       echo "VITE_INTERNAL_API_KEY=${VITE_INTERNAL_API_KEY}" >> .env && \
       echo "VITE_MAIN_APP_URL=${VITE_MAIN_APP_URL}" >> .env && \
-      echo "VITE_BASE_PATH=${VITE_BASE_PATH}" >> .env
+      echo "VITE_BASE_PATH=${VITE_BASE_PATH}" >> .env && \
+      echo "VITE_ENABLE_SLACK_NOTIFICATIONS=${VITE_ENABLE_SLACK_NOTIFICATIONS}" >> .env
 
   # ビルド
   RUN npm run build
