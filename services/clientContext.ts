@@ -37,7 +37,7 @@ const FALLBACK_BRAND: ClientBrand = {
   siteUrl: "",
 };
 
-function backendUrl(): string {
+export function backendUrl(): string {
   if (import.meta.env.DEV) return "";
   return (
     import.meta.env.VITE_API_URL?.replace("/api", "") ||
@@ -53,6 +53,7 @@ let activeConfig: ClientConfig | null = null;
 let cachedClients: ClientConfig[] = [];
 const listeners = new Set<(c: ClientConfig | null) => void>();
 const warningListeners = new Set<(msg: string) => void>();
+const clientsListeners = new Set<(list: ClientConfig[]) => void>();
 
 /** 選択中のクライアントIDを取得（未選択ならlocalStorageから復元） */
 export function getActiveClientId(): string | null {
@@ -73,7 +74,18 @@ export async function fetchClients(): Promise<ClientConfig[]> {
   if (!res.ok) throw new Error("クライアント一覧を取得できませんでした");
   const data = await res.json();
   cachedClients = data.clients ?? [];
+  clientsListeners.forEach((fn) => fn(cachedClients));
   return cachedClients;
+}
+
+/**
+ * クライアント一覧の更新を購読する（画面側の再描画用）。
+ * fetchClients() が完了するたびに最新の一覧で呼ばれる。
+ * 管理画面で登録・無効化したあと fetchClients() を呼べば、選択 UI が即時に追従する。
+ */
+export function onClientsChange(fn: (list: ClientConfig[]) => void): () => void {
+  clientsListeners.add(fn);
+  return () => clientsListeners.delete(fn);
 }
 
 /**

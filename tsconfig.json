@@ -30,6 +30,7 @@
     "*.ts",
     "*.tsx",
     "components/**/*",
+    "modules/**/*",
     "services/**/*",
     "utils/**/*",
     "types.ts"

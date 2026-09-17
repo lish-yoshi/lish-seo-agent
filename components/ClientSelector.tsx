@@ -5,6 +5,7 @@ import {
   getActiveClient,
   onClientChange,
   onClientWarning,
+  onClientsChange,
   type ClientConfig,
 } from "../services/clientContext";
 
@@ -27,7 +28,9 @@ const ClientSelector: React.FC = () => {
       .catch((e) => setError(e.message));
     const unsubChange = onClientChange(setActive);
     const unsubWarning = onClientWarning(setError);
-    return () => { unsubChange(); unsubWarning(); };
+    // 管理画面で登録・無効化したあとの一覧更新に追従する
+    const unsubClients = onClientsChange(setClients);
+    return () => { unsubChange(); unsubWarning(); unsubClients(); };
   }, []);
 
   const handleChange = async (e: React.ChangeEvent<HTMLSelectElement>) => {

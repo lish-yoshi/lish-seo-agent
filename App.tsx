@@ -36,6 +36,14 @@ import ClientSelector from "./components/ClientSelector";
 import { restoreActiveClient, clientHeaders } from "./services/clientContext";
 import { isAllowedImageAgentOrigin } from "./utils/imageAgentUrl";
 
+// クライアント管理画面（T-01b-2）。フラグ VITE_ENABLE_CLIENTS_ADMIN（既定 false）。
+// import() をフラグ判定の内側に置くことで、off のビルドには管理画面のチャンクが含まれない。
+const CLIENTS_ADMIN = import.meta.env.VITE_ENABLE_CLIENTS_ADMIN === "true";
+let ClientsAdminPage: React.LazyExoticComponent<React.FC> | null = null;
+if (CLIENTS_ADMIN) {
+  ClientsAdminPage = React.lazy(() => import("./modules/clients/ClientsAdminPage"));
+}
+
 // imager は見出し（H2）1つにつき画像を1枚、順番に生成するため、無応答タイムアウトを見出し数に比例させる
 const IMAGE_AGENT_TIMEOUT_BASE_MS = 5 * 60 * 1000;
 const IMAGE_AGENT_TIMEOUT_PER_HEADING_MS = 90 * 1000;
@@ -70,7 +78,7 @@ function resolveImageAgentTimeout(articleData: ArticleDataForImageAgent): number
 
 const App: React.FC = () => {
   const [currentPage, setCurrentPage] = useState<
-    "main" | "textcheck" | "factcheck" | "revision"
+    "main" | "textcheck" | "factcheck" | "revision" | "clients"
   >("main");
   const [keyword, setKeyword] = useState<string>("");
   const [outline, setOutline] = useState<SeoOutline | null>(null);
@@ -1436,6 +1444,25 @@ const App: React.FC = () => {
     }
   }, []); // 依存関係を削除してcircular dependencyを回避
 
+  // クライアント管理画面（フラグ on のときのみ到達する）
+  if (currentPage === "clients" && ClientsAdminPage) {
+    return (
+      <div className="min-h-screen bg-gray-50 text-gray-800 font-sans">
+        <div className="p-4">
+          <button
+            onClick={() => setCurrentPage("main")}
+            className="mb-4 px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg transition-all duration-200"
+          >
+            ← メインページに戻る
+          </button>
+        </div>
+        <React.Suspense fallback={<div className="p-6 text-sm text-gray-500">読み込み中...</div>}>
+          <ClientsAdminPage />
+        </React.Suspense>
+      </div>
+    );
+  }
+
   // ファクトチェックページを表示
   if (currentPage === "factcheck") {
     return <FactCheckPage />;
@@ -1512,6 +1539,15 @@ const App: React.FC = () => {
           >
             利用ガイド
           </a>
+          {CLIENTS_ADMIN && (
+            <button
+              onClick={() => setCurrentPage("clients")}
+              className="px-4 py-2 bg-gray-700 text-white hover:bg-gray-800 rounded-lg transition-all duration-200 text-sm font-medium shadow-sm"
+              data-testid="open-clients-admin"
+            >
+              クライアント管理
+            </button>
+          )}
         </div>
       </header>
 

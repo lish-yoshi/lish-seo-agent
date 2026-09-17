@@ -12,6 +12,8 @@ steps:
       # リテラル: BACKEND_URL=""（同一オリジン）/ IMAGE_GEN_URL=/imager（パス）
       #   SLACK_WEBHOOK_URL=""（無効化）/ SUPABASE_URL=""・ANON_KEY=""（未使用）
       #   ENABLE_SLACK_NOTIFICATIONS=false（本番ではバック経由に移行予定）
+      #   ENABLE_CLIENTS_ADMIN=false（クライアント管理画面。有効化時はバックエンドの
+      #     ENABLE_CLIENTS_ADMIN=true とセットで true にする）
       - >-
         docker build
         --build-arg VITE_GEMINI_API_KEY=$$GEMINI_API_KEY
@@ -23,6 +25,7 @@ steps:
         --build-arg VITE_ENABLE_SLACK_NOTIFICATIONS=false
         --build-arg VITE_SUPABASE_URL=
         --build-arg VITE_SUPABASE_ANON_KEY=
+        --build-arg VITE_ENABLE_CLIENTS_ADMIN=false
         -t asia-northeast1-docker.pkg.dev/$PROJECT_ID/seo-app/seo-frontend:latest .
     secretEnv:
       - GEMINI_API_KEY
