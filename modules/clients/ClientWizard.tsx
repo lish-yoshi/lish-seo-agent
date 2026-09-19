@@ -3,7 +3,7 @@
  * ステップ1だけで登録が完了する。2・3は「あとで」で飛ばせ、編集画面からいつでも埋められる。
  */
 
-import React, { useCallback, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { ApiError, createAdminClient, updateAdminClient, type AdminClient } from "./api";
 import {
   BasicFields,
@@ -45,6 +45,7 @@ const ClientWizard: React.FC<Props> = ({ onDone, onAuthError, onSaved }) => {
   const [createdId, setCreatedId] = useState<string | null>(null);
   const [idTouched, setIdTouched] = useState(false);
   const [baseUrlTouched, setBaseUrlTouched] = useState(false);
+  const [mediaUrlTouched, setMediaUrlTouched] = useState(false);
 
   const update = useCallback(
     (patch: Partial<FormValues>) => {
@@ -56,6 +57,7 @@ const ClientWizard: React.FC<Props> = ({ onDone, onAuthError, onSaved }) => {
           if (!baseUrlTouched) next.cmsBaseUrl = suggestBaseUrl(patch.siteUrl);
         }
         if (patch.cmsBaseUrl !== undefined && patch.siteUrl === undefined) setBaseUrlTouched(true);
+        if (patch.brandMediaUrl !== undefined) setMediaUrlTouched(true);
         return next;
       });
       // 触った項目のエラーは消す
@@ -135,6 +137,13 @@ const ClientWizard: React.FC<Props> = ({ onDone, onAuthError, onSaved }) => {
       setBusy(false);
     }
   };
+
+  // ステップ3に入ったとき、自社メディア URL が空なら siteUrl を初期値として提案する。
+  // id の提案と同じく、ユーザーがその欄を触ったあとは提案しない。
+  useEffect(() => {
+    if (step !== "operation" || mediaUrlTouched) return;
+    setValues((prev) => (prev.brandMediaUrl === "" && prev.siteUrl ? { ...prev, brandMediaUrl: prev.siteUrl } : prev));
+  }, [step, mediaUrlTouched]);
 
   const current = STEPS.find((s) => s.key === step)!;
 

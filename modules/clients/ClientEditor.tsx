@@ -130,7 +130,9 @@ const ClientEditor: React.FC<Props> = ({ id, onBack, onAuthError, onSaved }) => 
   if (!client || !values) return <Spinner />;
 
   const checks = readinessChecks(client);
-  const allOk = checks.every((c) => c.ok);
+  const required = checks.filter((c) => c.level === "required");
+  const recommended = checks.filter((c) => c.level === "recommended" && !c.ok);
+  const allOk = required.every((c) => c.ok);
   const sectionActions = (section: SectionKey) => (
     <Button onClick={() => saveSection(section)} busy={busySection === section} data-testid={`save-${section}`}>
       保存
@@ -163,14 +165,28 @@ const ClientEditor: React.FC<Props> = ({ id, onBack, onAuthError, onSaved }) => 
           記事生成に必要な設定{allOk ? "：すべて揃っています" : "：不足があります"}
         </p>
         <ul className="grid gap-1 sm:grid-cols-3">
-          {checks.map((c) => (
-            <li key={c.key} className={c.ok ? "text-green-700" : "text-red-700"}>
+          {required.map((c) => (
+            <li key={c.key} className={c.ok ? "text-green-700" : "text-red-700"} data-check={c.key} data-ok={c.ok ? "true" : "false"}>
               {c.ok ? "✓" : "✗"} {c.label}
-              {!c.ok && <span className="block text-xs text-red-600/80">{c.hint}</span>}
+              {c.note && <span className={`block text-xs ${c.ok ? "text-green-700/80" : "text-red-600/80"}`}>{c.note}</span>}
             </li>
           ))}
         </ul>
       </div>
+
+      {recommended.length > 0 && (
+        <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 mb-6 text-sm" data-testid="readiness-recommended">
+          <p className="font-semibold text-amber-800 mb-1">推奨</p>
+          <ul>
+            {recommended.map((c) => (
+              <li key={c.key} className="text-amber-800" data-check={c.key}>
+                △ {c.label}
+                <span className="block text-xs text-amber-700">{c.note}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       {formError && (
         <Notice tone="error" onClose={() => setFormError(null)}>

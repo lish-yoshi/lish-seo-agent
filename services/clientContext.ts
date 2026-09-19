@@ -74,7 +74,13 @@ export async function fetchClients(): Promise<ClientConfig[]> {
   if (!res.ok) throw new Error("クライアント一覧を取得できませんでした");
   const data = await res.json();
   cachedClients = data.clients ?? [];
-  clientsListeners.forEach((fn) => fn(cachedClients));
+  clientsListeners.forEach((fn) => {
+    try {
+      fn(cachedClients);
+    } catch (err) {
+      console.warn("[clientContext] onClientsChange の購読コールバックで例外:", err);
+    }
+  });
   return cachedClients;
 }
 

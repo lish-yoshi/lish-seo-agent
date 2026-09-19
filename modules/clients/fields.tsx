@@ -38,6 +38,11 @@ export interface FormValues {
   clientSensitivities: string;
   maxPublishPerMonth: string;
   billingCycleStartDay: string;
+  // brand（DB の生値。normalize() の既定値「当社」「当社サービス」は読み込まない）
+  brandCompanyName: string;
+  brandServiceName: string;
+  brandMediaUrl: string;
+  brandNoteUrl: string;
   username: string;
   password: string;
 }
@@ -69,6 +74,10 @@ export const SECTION_FIELDS: Record<SectionKey, (keyof FormValues)[]> = {
     "clientSensitivities",
     "maxPublishPerMonth",
     "billingCycleStartDay",
+    "brandCompanyName",
+    "brandServiceName",
+    "brandMediaUrl",
+    "brandNoteUrl",
     "username",
     "password",
   ],
@@ -102,6 +111,10 @@ export function emptyValues(): FormValues {
     clientSensitivities: "",
     maxPublishPerMonth: "",
     billingCycleStartDay: "",
+    brandCompanyName: "",
+    brandServiceName: "",
+    brandMediaUrl: "",
+    brandNoteUrl: "",
     username: "",
     password: "",
   };
@@ -135,6 +148,11 @@ export function valuesFromClient(c: AdminClient): FormValues {
     clientSensitivities: c.clientSensitivities ?? "",
     maxPublishPerMonth: c.maxPublishPerMonth == null ? "" : String(c.maxPublishPerMonth),
     billingCycleStartDay: c.billingCycleStartDay == null ? "" : String(c.billingCycleStartDay),
+    // 管理 API の brand は DB の生値（toAdmin は既定値を補完しない）
+    brandCompanyName: c.brand?.companyName ?? "",
+    brandServiceName: c.brand?.serviceName ?? "",
+    brandMediaUrl: c.brand?.mediaUrl ?? "",
+    brandNoteUrl: c.brand?.noteUrl ?? "",
     username: c.cms.credentials.username ?? "",
     // 設定済みならマスク文字列が入る。空欄のまま保存すれば送らない（既存維持）
     password: c.cms.credentials.password ?? "",
@@ -202,6 +220,16 @@ export function toPatch(v: FormValues, original: FormValues, section: SectionKey
     if (changed("maxPublishPerMonth")) patch.maxPublishPerMonth = intOrNull(v.maxPublishPerMonth);
     if (changed("billingCycleStartDay")) patch.billingCycleStartDay = intOrNull(v.billingCycleStartDay);
 
+    // brand は変わったキーだけ送る（サーバーが既存 jsonb にマージする）。
+    // 空欄は "" として保存する。サーバーの normalize() は `||` で既定値を補完するため、
+    // "" を保存しても記事生成側には「当社サービス」等の既定値が届き、空文字は届かない。
+    const brand: NonNullable<AdminClientInput["brand"]> = {};
+    if (changed("brandCompanyName")) brand.companyName = v.brandCompanyName.trim();
+    if (changed("brandServiceName")) brand.serviceName = v.brandServiceName.trim();
+    if (changed("brandMediaUrl")) brand.mediaUrl = v.brandMediaUrl.trim();
+    if (changed("brandNoteUrl")) brand.noteUrl = v.brandNoteUrl.trim();
+    if (Object.keys(brand).length) patch.brand = brand;
+
     const credentials: Record<string, string> = {};
     if (changed("username")) credentials.username = v.username.trim();
     if (v.password !== "" && v.password !== CREDENTIAL_MASK && changed("password")) {
@@ -247,6 +275,10 @@ const FIELD_MAP: Record<string, keyof FormValues> = {
   client_sensitivities: "clientSensitivities",
   max_publish_per_month: "maxPublishPerMonth",
   billing_cycle_start_day: "billingCycleStartDay",
+  "brand.companyName": "brandCompanyName",
+  "brand.serviceName": "brandServiceName",
+  "brand.mediaUrl": "brandMediaUrl",
+  "brand.noteUrl": "brandNoteUrl",
 };
 
 export function formKeyOfApiField(field: string | null | undefined): keyof FormValues | null {
@@ -261,17 +293,53 @@ export function sectionOfField(key: keyof FormValues): SectionKey {
   return "basic";
 }
 
-/** 記事生成に必要な設定の充足チェック（編集画面上部に表示） */
-export function readinessChecks(c: AdminClient): { key: string; label: string; ok: boolean; hint: string }[] {
+export interface ReadinessItem {
+  key: string;
+  label: string;
+  /** required: 無いと記事生成が動かない（赤）。recommended: 動くが品質が落ちる（黄） */
+  level: "required" | "recommended";
+  ok: boolean;
+  /** ok のときの補足（例: 環境変数で設定済み）／不足のときの案内 */
+  note: string;
+}
+
+/**
+ * 記事生成に必要な設定の充足チェック（編集画面上部に表示）。
+ * CMS 認証情報は jsonb の実値が無くても、環境変数名（*Env）が設定されていれば充足とみなす。
+ * 既存クライアントはこの形式で、実値は Cloud Run のシークレットから注入される。
+ */
+export function readinessChecks(c: AdminClient): ReadinessItem[] {
   const creds = c.cms.credentials;
-  const hasCreds =
-    c.cms.type === "payload"
-      ? Boolean(creds.apiKey || creds.apiKeyEnv)
-      : Boolean((creds.username || creds.usernameEnv) && (creds.password || creds.passwordEnv));
+  const isPayload = c.cms.type === "payload";
+  const literalOk = isPayload ? Boolean(creds.apiKey) : Boolean(creds.username && creds.password);
+  const envOk = isPayload
+    ? Boolean(creds.apiKeyEnv)
+    : Boolean((creds.username || creds.usernameEnv) && (creds.password || creds.passwordEnv));
+  const credsOk = literalOk || envOk;
+  const credsNote = literalOk
+    ? ""
+    : envOk
+      ? "環境変数で設定済み"
+      : isPayload
+        ? "API キーが未設定"
+        : "ステップ3の WordPress 認証情報";
+
+  const brand = c.brand || ({} as AdminClient["brand"]);
+  const missingBrand: string[] = [];
+  if (!brand.serviceName) missingBrand.push("サービス名");
+  if (!brand.mediaUrl) missingBrand.push("自社メディア URL");
+
   return [
-    { key: "baseUrl", label: "投稿先 URL（cms.baseUrl）", ok: Boolean(c.cms.baseUrl), hint: "ステップ1で設定" },
-    { key: "credentials", label: "CMS 認証情報", ok: hasCreds, hint: "ステップ3の WordPress 認証情報" },
-    { key: "spreadsheet", label: "記事制作スプレッドシート ID", ok: Boolean(c.spreadsheetId), hint: "ステップ3で設定" },
+    { key: "baseUrl", label: "投稿先 URL（cms.baseUrl）", level: "required", ok: Boolean(c.cms.baseUrl), note: c.cms.baseUrl ? "" : "ステップ1で設定" },
+    { key: "credentials", label: "CMS 認証情報", level: "required", ok: credsOk, note: credsNote },
+    { key: "spreadsheet", label: "記事制作スプレッドシート ID", level: "required", ok: Boolean(c.spreadsheetId), note: c.spreadsheetId ? "" : "ステップ3で設定" },
+    {
+      key: "brand",
+      label: missingBrand.length ? `ブランド情報（${missingBrand.join("・")}が未設定）` : "ブランド情報（サービス名・自社メディア URL）",
+      level: "recommended",
+      ok: missingBrand.length === 0,
+      note: missingBrand.length ? "未設定の場合、サービス訴求セクションの判定と自社出典の優先が効きません" : "",
+    },
   ];
 }
 
@@ -460,6 +528,26 @@ export const OperationFields: React.FC<SectionProps> = ({ values, errors, onChan
     <Field label="クライアントの注意点（自由記述）" htmlFor="f-sens" error={errors.clientSensitivities} hint="診断画面に常時表示されます">
       <TextArea id="f-sens" rows={3} value={values.clientSensitivities} invalid={Boolean(errors.clientSensitivities)} onChange={(e) => onChange({ clientSensitivities: e.target.value })} />
     </Field>
+
+    <h3 className="text-sm font-semibold text-gray-700 mt-6 mb-2">ブランド情報（記事生成で使用）</h3>
+    <p className="text-xs text-gray-500 mb-3">
+      サービス名は「サービス訴求セクション」の判定に、自社メディア URL と note URL は自社出典を優先する判定に使います。
+      空欄の場合はグレーで示した既定値で動作します。
+    </p>
+    <div className="grid gap-4 sm:grid-cols-2">
+      <Field label="会社名" htmlFor="f-brandCompany" error={errors.brandCompanyName}>
+        <TextInput id="f-brandCompany" value={values.brandCompanyName} invalid={Boolean(errors.brandCompanyName)} placeholder="未設定時: 当社" onChange={(e) => onChange({ brandCompanyName: e.target.value })} />
+      </Field>
+      <Field label="サービス名" htmlFor="f-brandService" error={errors.brandServiceName} hint="見出しにこの語が含まれるとサービス訴求セクションとして扱います">
+        <TextInput id="f-brandService" value={values.brandServiceName} invalid={Boolean(errors.brandServiceName)} placeholder="未設定時: 当社サービス" onChange={(e) => onChange({ brandServiceName: e.target.value })} />
+      </Field>
+      <Field label="自社メディア URL" htmlFor="f-brandMedia" error={errors.brandMediaUrl} hint="スキームなしのドメイン。例: english-with.com">
+        <TextInput id="f-brandMedia" value={values.brandMediaUrl} invalid={Boolean(errors.brandMediaUrl)} placeholder="未設定時: 自社出典の優先なし" onChange={(e) => onChange({ brandMediaUrl: e.target.value })} />
+      </Field>
+      <Field label="note URL" htmlFor="f-brandNote" error={errors.brandNoteUrl} hint="例: note.com/lish">
+        <TextInput id="f-brandNote" value={values.brandNoteUrl} invalid={Boolean(errors.brandNoteUrl)} placeholder="未設定時: なし" onChange={(e) => onChange({ brandNoteUrl: e.target.value })} />
+      </Field>
+    </div>
 
     <h3 className="text-sm font-semibold text-gray-700 mt-6 mb-2">WordPress 認証情報</h3>
     <p className="text-xs text-gray-500 mb-3">

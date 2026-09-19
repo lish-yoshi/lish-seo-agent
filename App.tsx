@@ -1542,7 +1542,13 @@ const App: React.FC = () => {
           {CLIENTS_ADMIN && (
             <button
               onClick={() => setCurrentPage("clients")}
-              className="px-4 py-2 bg-gray-700 text-white hover:bg-gray-800 rounded-lg transition-all duration-200 text-sm font-medium shadow-sm"
+              disabled={isLoading || isProcessingQueue || isAutoRunning || queueActive}
+              title={
+                isLoading || isProcessingQueue || isAutoRunning || queueActive
+                  ? "記事生成中は開けません"
+                  : undefined
+              }
+              className="px-4 py-2 bg-gray-700 text-white hover:bg-gray-800 rounded-lg transition-all duration-200 text-sm font-medium shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
               data-testid="open-clients-admin"
             >
               クライアント管理
