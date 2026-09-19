@@ -200,9 +200,29 @@ async function update(table, query, patch) {
   return Array.isArray(result) ? result : [];
 }
 
+/**
+ * 条件に合う行を削除し、削除した行を返す。
+ * update() と同じく、全件削除の事故を防ぐためフィルタの無い呼び出しは拒否する。
+ */
+async function remove(table, query) {
+  const qs = toQueryString(query);
+  const hasFilter = qs
+    .split("&")
+    .filter(Boolean)
+    .some((p) => !/^(select|order|limit|offset|on_conflict|columns)=/.test(p));
+  if (!hasFilter) {
+    throw dbError("SUPABASE_HTTP_400", `remove(${table}) にフィルタがありません。全件削除は許可していません`, { status: 400 });
+  }
+  const result = await request("DELETE", tablePath(table), {
+    query: qs,
+    headers: { Prefer: "return=representation" },
+  });
+  return Array.isArray(result) ? result : [];
+}
+
 /** データベース関数を呼ぶ。戻り値は関数の定義による（配列とは限らない） */
 async function rpc(fn, args) {
   return request("POST", `/rest/v1/rpc/${encodeURIComponent(fn)}`, { body: args || {} });
 }
 
-module.exports = { request, select, selectAll, insert, upsert, update, rpc };
+module.exports = { request, select, selectAll, insert, upsert, update, remove, rpc };
