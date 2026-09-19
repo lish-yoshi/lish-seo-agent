@@ -41,7 +41,32 @@ function usage() {
     "使い方:",
     "  node server/modules/keywords/cli.js import-cms --client <id> [--post-types post,page] [--per-page 50] [--dry-run] [--verbose]",
     "  node server/modules/keywords/cli.js import-csv --client <id> --file <path> [--dry-run] [--force] [--errors-out <path>] [--verbose]",
+    "  node server/modules/keywords/cli.js embed --client <id> [--force] [--limit N] [--dry-run] [--verbose]",
+    "  node server/modules/keywords/cli.js similarity-report --client <id> [--top 20] [--out <path>] [--verbose]",
   ].join("\n");
+}
+
+async function runEmbed(flags) {
+  const { embedArticles } = require("./embed");
+  return embedArticles({
+    clientId: flags.client,
+    force: flags.force === true,
+    limit: typeof flags.limit === "string" ? Number(flags.limit) : undefined,
+    dryRun: flags["dry-run"] === true,
+  });
+}
+
+async function runSimilarityReport(flags) {
+  const { similarityReport } = require("./similarity");
+  const report = await similarityReport({
+    clientId: flags.client,
+    top: typeof flags.top === "string" ? Number(flags.top) : 20,
+  });
+  if (typeof flags.out === "string" && flags.out) {
+    require("fs").writeFileSync(flags.out, JSON.stringify(report, null, 2) + "\n", "utf8");
+    report.out = flags.out;
+  }
+  return report;
 }
 
 /** CSV の 1 フィールド。カンマ・改行・ダブルクォートを含むときだけ囲む */
@@ -96,7 +121,7 @@ async function main() {
   const verbose = flags.verbose === true;
 
   try {
-    if (!["import-cms", "import-csv"].includes(command)) {
+    if (!["import-cms", "import-csv", "embed", "similarity-report"].includes(command)) {
       console.error(usage());
       process.exitCode = 1;
       return;
@@ -109,6 +134,14 @@ async function main() {
 
     if (command === "import-csv") {
       console.log(JSON.stringify(await runImportCsv(flags), null, 2));
+      return;
+    }
+    if (command === "embed") {
+      console.log(JSON.stringify(await runEmbed(flags), null, 2));
+      return;
+    }
+    if (command === "similarity-report") {
+      console.log(JSON.stringify(await runSimilarityReport(flags), null, 2));
       return;
     }
 
