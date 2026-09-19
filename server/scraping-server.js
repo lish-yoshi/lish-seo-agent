@@ -1168,6 +1168,25 @@ if (process.env.ENABLE_CLIENTS_ADMIN === "true") {
   console.log("🛠 クライアント管理 API を有効化しました (/api/admin/*)");
 }
 
+// 新モジュール（マスター仕様書 §7.0.2）。フィーチャーフラグは既定 false。
+// off のときはモジュールを require すらせず、/api/keywords|metrics|audit/* は 404 のまま。
+// 判定はバッチ（CLI・ジョブ）と共通の server/lib/flags.js を使う。
+{
+  const { isEnabled } = require("./lib/flags");
+  if (isEnabled("ENABLE_KEYWORDS_MODULE")) {
+    require("./modules/keywords/routes").register(app);
+    console.log("🛠 キーワード設計モジュールを有効化しました (/api/keywords/*)");
+  }
+  if (isEnabled("ENABLE_METRICS_MODULE")) {
+    require("./modules/metrics/routes").register(app);
+    console.log("🛠 計測モジュールを有効化しました (/api/metrics/*)");
+  }
+  if (isEnabled("ENABLE_AUDIT_MODULE")) {
+    require("./modules/audit/routes").register(app);
+    console.log("🛠 設定チェックモジュールを有効化しました (/api/audit/*)");
+  }
+}
+
 // グローバルエラーハンドラー
 app.use((err, req, res, next) => {
   console.error("Unhandled error:", err);
