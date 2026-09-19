@@ -25,7 +25,7 @@ steps:
         --build-arg VITE_ENABLE_SLACK_NOTIFICATIONS=false
         --build-arg VITE_SUPABASE_URL=
         --build-arg VITE_SUPABASE_ANON_KEY=
-        --build-arg VITE_ENABLE_CLIENTS_ADMIN=false
+        --build-arg VITE_ENABLE_CLIENTS_ADMIN=true
         -t asia-northeast1-docker.pkg.dev/$PROJECT_ID/seo-app/seo-frontend:latest .
     secretEnv:
       - GEMINI_API_KEY
