@@ -40,7 +40,47 @@ function usage() {
   return [
     "使い方:",
     "  node server/modules/keywords/cli.js import-cms --client <id> [--post-types post,page] [--per-page 50] [--dry-run] [--verbose]",
+    "  node server/modules/keywords/cli.js import-csv --client <id> --file <path> [--dry-run] [--force] [--errors-out <path>] [--verbose]",
   ].join("\n");
+}
+
+/** CSV の 1 フィールド。カンマ・改行・ダブルクォートを含むときだけ囲む */
+function csvField(value) {
+  const s = String(value ?? "");
+  return /[",\r\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+}
+
+/** エラー行を line,url,reason の CSV（UTF-8・BOM 付き。Excel でそのまま開ける）で書き出す */
+function writeErrorsCsv(filePath, errorRows) {
+  const fs = require("fs");
+  const lines = ["line,url,reason", ...errorRows.map((r) => [r.line, r.url, r.reason].map(csvField).join(","))];
+  fs.writeFileSync(filePath, "﻿" + lines.join("\r\n") + "\r\n", "utf8");
+}
+
+async function runImportCsv(flags) {
+  const fs = require("fs");
+  if (typeof flags.file !== "string" || !flags.file) {
+    throw Object.assign(new Error("--file <path> は必須です"), { code: "CLI_BAD_ARGS" });
+  }
+  let buffer;
+  try {
+    buffer = fs.readFileSync(flags.file);
+  } catch (err) {
+    throw Object.assign(new Error("CSV ファイルを読めません (CSV_FILE_NOT_FOUND)"), { code: "CSV_FILE_NOT_FOUND", detail: err.message });
+  }
+  const { importCsv } = require("./import/csv");
+  const result = await importCsv({
+    clientId: flags.client,
+    buffer,
+    createdBy: `cli:${osUser()}`,
+    dryRun: flags["dry-run"] === true,
+    force: flags.force === true,
+  });
+  if (typeof flags["errors-out"] === "string" && flags["errors-out"]) {
+    writeErrorsCsv(flags["errors-out"], result.errorRows);
+    result.errorsOut = flags["errors-out"];
+  }
+  return result;
 }
 
 function osUser() {
@@ -56,7 +96,7 @@ async function main() {
   const verbose = flags.verbose === true;
 
   try {
-    if (command !== "import-cms") {
+    if (!["import-cms", "import-csv"].includes(command)) {
       console.error(usage());
       process.exitCode = 1;
       return;
@@ -64,6 +104,11 @@ async function main() {
     if (typeof flags.client !== "string" || !flags.client) {
       console.error("--client <id> は必須です\n" + usage());
       process.exitCode = 1;
+      return;
+    }
+
+    if (command === "import-csv") {
+      console.log(JSON.stringify(await runImportCsv(flags), null, 2));
       return;
     }
 

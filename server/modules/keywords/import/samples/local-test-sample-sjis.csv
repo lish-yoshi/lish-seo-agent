@@ -1,0 +1,13 @@
+url,target_keyword,note
+http://seo-test.local/t07-dry-head-spa-effect/,ドライヘッドスパ 効果,末尾スラッシュ付き
+http://seo-test.local/t07-seitai-vs-relaxation?utm_source=newsletter&utm_medium=email,整体 リラクゼーション 違い,utm 付き
+https://www.seo-test.local/t07-whitening-types,ホワイトニング 種類,https + www 付き
+http://seo-test.local/%e3%83%98%e3%83%83%e3%83%89%e3%82%b9%e3%83%91-%e6%96%99%e9%87%91-%e7%9b%b8%e5%a0%b4/,ヘッドスパ 料金 相場,日本語スラッグ（小文字の %e3）
+http://seo-test.local/ヘッドスパ-料金-相場/,ヘッドスパ 料金,日本語スラッグ（生の日本語）。上の行と同じ記事なので重複になる
+"http://seo-test.local/t07-strong-and-amp","Q&A, よくある質問",キーワードにカンマを含むクォート行
+http://seo-test.local/t07-service-page,　ヘッドスパ　　メニュー　,全角空白の畳み込み
+http://seo-test.local/does-not-exist,存在しない記事,articles に無い URL
+http://seo-test.local/t07-no-headings,,キーワード空欄
+http://seo-test.local/t07-dry-head-spa-effect,ドライヘッドスパ 頻度,同一 URL の重複（2 行目と同じ記事）
+not-a-url,不正な URL,
+,URL 空欄,

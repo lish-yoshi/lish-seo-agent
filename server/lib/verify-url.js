@@ -4,7 +4,7 @@
  */
 
 const assert = require("node:assert/strict");
-const { normalizeArticleUrl: n } = require("./url");
+const { normalizeArticleUrl: n, articleUrlKey: k } = require("./url");
 
 const cases = [];
 const test = (name, fn) => cases.push({ name, fn });
@@ -94,6 +94,47 @@ test("冪等", () => {
 test("不正な URL は null", () => {
   for (const bad of ["", "   ", "not a url", "/relative/path", "ftp://example.com/a", "mailto:a@example.com", null, undefined, 123, {}]) {
     assert.equal(n(bad), null, String(bad));
+  }
+});
+
+test("articleUrlKey: http と https、www の有無が同じキーになる", () => {
+  const expected = "example.com/blog/post";
+  for (const input of [
+    "http://example.com/blog/post",
+    "https://example.com/blog/post/",
+    "https://www.example.com/blog/post",
+    "http://WWW.Example.com/blog/post/?utm_source=x#top",
+    "https://www.example.com/blog/post/amp/",
+  ]) {
+    assert.equal(k(input), expected, input);
+  }
+  // www 以外のサブドメインは別物として扱う
+  assert.notEqual(k("https://blog.example.com/post"), k("https://example.com/post"));
+  assert.equal(k("https://www2.example.com/post"), "www2.example.com/post");
+  // クエリとポートは保持する
+  assert.equal(k("https://www.example.com/?p=123"), "example.com/?p=123");
+  assert.equal(k("http://example.com:8080/a/"), "example.com:8080/a");
+});
+
+test("articleUrlKey: 日本語スラッグの表記ゆれが同じキーになる", () => {
+  const upper = k("http://example.com/%E3%83%98%E3%83%83%E3%83%89/");
+  assert.equal(k("https://www.example.com/%e3%83%98%e3%83%83%e3%83%89"), upper);
+  assert.equal(k("https://example.com/ヘッド/"), upper);
+});
+
+test("articleUrlKey: 冪等（キーにスキームを付け直しても同じキー）と不正 URL", () => {
+  for (const input of [
+    "https://WWW.Example.com/Blog/Post/?utm_source=x&p=1#frag",
+    "http://example.com/%e3%83%98%e3%83%83%e3%83%89/amp/",
+    "http://seo-test.local/hello-world/",
+  ]) {
+    const key = k(input);
+    assert.equal(k(n(input)), key, input);
+    assert.equal(k(`https://${key}`), key, input);
+    assert.equal(k(`http://www.${key}`), key, input);
+  }
+  for (const bad of ["", "not a url", "example.com/post", "ftp://example.com/a", null, undefined]) {
+    assert.equal(k(bad), null, String(bad));
   }
 });
 

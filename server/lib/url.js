@@ -79,4 +79,17 @@ function normalizeArticleUrl(url) {
   return `${u.protocol}//${host}${path}${query ? `?${query}` : ""}`;
 }
 
-module.exports = { normalizeArticleUrl };
+/**
+ * 記事の照合キー。normalizeArticleUrl の結果からスキームとホスト先頭の "www." を除いたもの。
+ *   https://www.example.com/post/ → example.com/post
+ * 人が書く CSV や GSC のプロパティ設定では http / https・www の有無が DB と食い違うことがあるため、
+ * 保存用の url（normalizeArticleUrl）とは別に、突き合わせ専用のキーとして使う。
+ * 不正な URL は null。
+ */
+function articleUrlKey(url) {
+  const normalized = normalizeArticleUrl(url);
+  if (!normalized) return null;
+  return normalized.replace(/^https?:\/\//, "").replace(/^www\./, "");
+}
+
+module.exports = { normalizeArticleUrl, articleUrlKey };
